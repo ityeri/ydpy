@@ -314,3 +314,17 @@ YdpyException(Exception)
 3. **M3 (하향)** — JS 챌린지(n/sig): 웹/일부 포맷 회귀 대비 폴백. clean-room solver + 런타임
 4. **M4** — POT: web 클라이언트 활성화용 (player pot로 URL 응답 회복 가능성 재검증 포함)
 5. M5 — async 전면 검증, 진행 콜백, 벤치, 문서
+
+### M2 실측 결과 (2026-09-03, visionos 클라이언트)
+- **다운로더**: 파일 sink + BytesIO 버퍼 동시 기록, 파일 == 버퍼 == contentLength 검증 PASS. 동기 9.8MB/0.19s(51MB/s), 비동기 0.24s(41MB/s)
+- **핵심 발견 — Range 필수**: googlevideo는 **Range 헤더 없는 전체 GET을 ~32KB/s로 스로틀** (curl 실측). Range(`bytes=0-`) 요청은 풀스피드(24MB/s+). → downloader는 항상 Range 전송 (yt-dlp가 chunked/resume에서 우연히 Range를 쓰는 이유로 추정)
+- **익명 player API는 watch 페이지 ytcfg의 visitor_data 필요**: 없으면 'Sign in to confirm you are not a bot' → extract가 watch 페이지에서 api_key+VISITOR_DATA 자동 확보하도록 구현
+- **영상 타입 매트릭스**: VOD/Shorts(한국 챌린지 포함)/강의/직캠 6종 전체 다운로드 PASS. 실패 3종은 로그인 필요·TOS 삭제·연령확인(playabilityStatus 명확 메시지) — 모두 v1 비목표 영역
+- n 미해결 스트림 추가 실증: 대형 파일(9.5MB)도 무챌린지 풀스피드 → **M3(JS 챌린지)는 회귀 대비 폴백으로 유지, v1 핵심 경로 아님**
+
+### M2 완료 항목
+- [x] Format 모델 (frozen, from_json, 코덱/컨테이너 도메인 enum, with_n/with_pot 불변 변환)
+- [x] VideoData 스냅샷 + extract 오케스트레이션 (watch ytcfg 자동 확보, 손상 플래그)
+- [x] downloader: sink(경로/file-like/BytesIO), 항상-Range, 적응 블록(상한 4MB), identity, 재시도, ThrottledDownload 감지(옵션)
+- [x] Video 사용자 엔티티 (id/url 파싱, fetch/afetch)
+- [x] scripts/dl_test.py + 라이브 매트릭스 통과
