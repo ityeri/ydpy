@@ -56,12 +56,12 @@ def _validate_player_response(data: dict[str, Any], client: Client, video_id: st
     playability = data.get('playabilityStatus') or {}
     if playability.get('status') != 'OK':
         reason = playability.get('reason') or playability.get('status')
-        raise ExtractionException(f'{client.name}: video not playable ({reason})')
+        raise ExtractionException(f'video not playable ({reason})')
     details = data.get('videoDetails') or {}
     if details.get('videoId') != video_id:
         # Some videos serve the player response of a *different* video. Sneaky.
         raise ExtractionException(
-            f'{client.name}: player response for another video ({details.get("videoId")!r})')
+            f'player response for another video ({details.get("videoId")!r})')
 
 
 def get_player(

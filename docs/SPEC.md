@@ -335,3 +335,18 @@ YdpyException(Exception)
 - **async 전면 매트릭스**: afetch+adownload 6종 전부 PASS (47.5 / 10.7 / 25.3MB/s 등, size_ok=True)
 - **벤치 vs yt-dlp** (itag 251, 동일 영상): yt-dlp 3.16s (3.1MB/s, 추출 포함) vs ydpy 1.62s (6.0MB/s, 추출 포함) — ydpy 약 2배 빠름. 다만 파일 크기 상이(9730538 vs 9802222): 출처 클라이언트가 달라 다른 인코딩으로 추정 — 정밀 비교는 같은 클라이언트 강제 시 필요
 - 공개 API: `DownloadOptions`/`DownloadResult` 최상위 export, README 퀵스타트(sync/async/sink/options/errors) 작성
+
+### M3/M4 재평가 — 클라이언트 스윕 실측 (2026-09-03, YE7VzlLtp-4, 익명·무pot)
+| 클라이언트 | URL 포맷 | 최고 해상도 | n-미해결 다운로드 |
+|---|---|---|---|
+| visionos | 27/27 | 1080p | 풀스피드 |
+| **tv_downgraded** (TVHTML5 5.x) | **35/35** | **1080p** | 풀스피드 (11MB/s+) |
+| mweb | 29/29 | 720p | 풀스피드 |
+| android_vr | 24/24 | 1080p | 정상 (~2MB/s) |
+| tv (7.x) / android | 1/30, 1/35 | 360p만 | — |
+| ios / web_embedded / web | URL 없음 or 불가 | — | pot 게이트 |
+
+**결론**:
+- **M3(JS 챌린지 solver) = 보류**: 2026년 현재 n 미해결 스트림이 스로틀되는 경로를 전혀 찾지 못함(5개 클라이언트 전부 Range 요청 시 풀스피드). solver는 n-스로틀 포맷이 실제 출현할 때(예: web 4K pot 경로) 구현 — dormant
+- **M4(POT) = web 전용 옵션**: 익명 다운로드의 실질 필요 없음. tv_downgraded가 pot 없이 1080p 커버. web(4K/HDR 등) 활성화는 외부 pot provider 연동 시 재검증 (provider 없이는 검증 불가 — 대기)
+- **대신 구현**: 클라이언트 폴백 체인 `('visionos', 'tv_downgraded', 'mweb', 'android_vr')` — 첫 성공 클라이언트 승리, 실패 사유 누적 보고. 로그인/연령/멤버십 영상은 전 클라이언트 일관 실패 (v1 비목표 확인)

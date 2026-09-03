@@ -9,6 +9,7 @@ from ydpy.request.utils import BROWSER_USER_AGENT
 __all__ = [
     'Client',
     'CLIENTS',
+    'DEFAULT_CLIENT_NAMES',
     'get_default_clients',
     'innertube_headers',
 ]
@@ -55,14 +56,54 @@ _CLIENT_DEFS: tuple[Client, ...] = (
         os_version='26.5.23O471',
         require_js_player=False,
     ),
+    # Pot-free fallbacks: anon player API still serves full direct urls to
+    # these (live-verified 2026-09). Older TVHTML5 beats the current one, which
+    # only hands out a 360p url anonymously.
+    Client(
+        name='tv_downgraded',
+        client_name='TVHTML5',
+        client_version='5.20260707',
+        client_id=7,
+        user_agent='Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+        require_js_player=False,
+    ),
+    Client(
+        name='mweb',
+        client_name='MWEB',
+        client_version='2.20260708.05.00',
+        client_id=2,
+        user_agent=(
+            'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 '
+            '(KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)'
+        ),
+        require_js_player=False,
+    ),
+    Client(
+        name='android_vr',
+        client_name='ANDROID_VR',
+        client_version='1.65.10',
+        client_id=28,
+        user_agent=(
+            'com.google.android.apps.youtube.vr.oculus/1.65.10 '
+            '(Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip'
+        ),
+        device_make='Oculus',
+        device_model='Quest 3',
+        os_name='Android',
+        os_version='12L',
+        require_js_player=False,
+    ),
 )
 
 CLIENTS: dict[str, Client] = {client.name: client for client in _CLIENT_DEFS}
 
+# Ordered fallback chain: first client whose playable formats come back wins.
+DEFAULT_CLIENT_NAMES: tuple[str, ...] = ('visionos', 'tv_downgraded', 'mweb', 'android_vr')
+
 
 def get_default_clients(*, js_available: bool) -> tuple[str, ...]:
-    """VisionOS+web when a JS runtime exists, visionOS alone otherwise."""
-    return ('visionos', 'web') if js_available else ('visionos',)
+    """Primary + fallback clients (web needs POT, so it is not in the list)."""
+    return DEFAULT_CLIENT_NAMES
 
 
 def innertube_headers(client: Client) -> dict[str, str]:
