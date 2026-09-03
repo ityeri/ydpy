@@ -9,8 +9,8 @@ Low-level, YouTube-only stream fetching/downloading library.
 - Sync **and** async APIs, sink-based output (path / file-like / memory buffer)
 - Python >= 3.11, dependencies: `httpx` + `yarl`
 
-> Under active development — see [docs/SPEC.md](docs/SPEC.md) for the spec,
-> live-verified findings and milestones.
+> Under active development — live-verified findings and the project plan are
+> kept out-of-repo in the maintainer's notes.
 
 ## Install
 
