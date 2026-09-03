@@ -1,0 +1,35 @@
+[project]
+name = "ydpy"
+version = "0.0.1"
+authors = [
+    { name = "ityeri", email = "ityeri9@gmail.com" },
+]
+description = "Low-level YouTube-only stream fetching/downloading library with bot-bypass (JS challenge solving, PO token policy)"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "httpx",
+    "yarl",
+]
+
+[project.optional-dependencies]
+test = []
+
+[project.urls]
+Homepage = "https://github.com/ityeri/ydpy"
+Issues = "https://github.com/ityeri/ydpy/issues"
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ydpy", "ydpy.*"]
+exclude = ["tests*", ".*"]
