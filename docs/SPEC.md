@@ -294,3 +294,23 @@ YdpyException(Exception)
 - PyPI 패키지명 `ydpy` 충돌 확인
 - 쿠키/로그인(인증 클라이언트) v1.1+ 여부
 - 외부 pot provider 기본값: bgutil 연동 예제를 저장소에 포함할지
+
+---
+
+## 13. 라이브 실측 업데이트 (2026-09-03, YE7VzlLtp-4)
+
+`scripts/probe.py` + 임시 속도 프로브로 검증한 결과 (M1 진행 중 획득):
+
+| 측정 | 결과 | 의미 |
+|---|---|---|
+| visionos player API | OK — adaptive 27종 (1080p vp9/av01/avc1 포함) + HLS, 전부 직접 URL | visionos = v1 주력 경로 |
+| visionos n-URL **미해결** 상태 다운로드 | **7.5~10.6 MB/s 풀스피드**, HTTP 206 | visionos의 n은 스로틀 게이트가 아님 → **JS 챌린지 불필요** (require_js_player=False 실증) |
+| web watch 페이지 initial PR | OK — adaptive 33종이나 **URL·signatureCipher 전무** (메타데이터만) | web 초기 PR은 v1에서 사용 불가 |
+| web player API 직접 호출 | UNPLAYABLE (payload 변형 3종 모두, playbackContext는 400) | 익명·무pot web API 불가 → **web은 POT(M4) 의존** |
+
+### 마일스톤 우선순위 갱신
+1. **M1 ✅ (완료)** — request 레이어 + watch/ytcfg + visionos·web player API (라이브 검증됨)
+2. **M2 (다음)** — Format 모델 + sink + 순차 다운로더. visionos n-URL 그대로 사용, **라이브 매트릭스로 다른 영상 타입(쇼츠/VOD/음악)에서 n-스로틀 발생 여부 확인** (발생 시에만 M3 필요)
+3. **M3 (하향)** — JS 챌린지(n/sig): 웹/일부 포맷 회귀 대비 폴백. clean-room solver + 런타임
+4. **M4** — POT: web 클라이언트 활성화용 (player pot로 URL 응답 회복 가능성 재검증 포함)
+5. M5 — async 전면 검증, 진행 콜백, 벤치, 문서
