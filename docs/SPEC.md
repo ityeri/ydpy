@@ -328,3 +328,10 @@ YdpyException(Exception)
 - [x] downloader: sink(경로/file-like/BytesIO), 항상-Range, 적응 블록(상한 4MB), identity, 재시도, ThrottledDownload 감지(옵션)
 - [x] Video 사용자 엔티티 (id/url 파싱, fetch/afetch)
 - [x] scripts/dl_test.py + 라이브 매트릭스 통과
+
+### M5 실측 결과 (2026-09-03)
+- **진행 콜백**: 단조 증가 검증, 최종 == contentLength, 피크 28.3MB/s 관측 — PASS
+- **스로틀 감지**: 3초 관측 창 1개로 즉시 raise하도록 타이트닝 (1080p 96MB 파일, limit 10GB/s → 5.7s에 ThrottledDownload — 수정 전 12.3s)
+- **async 전면 매트릭스**: afetch+adownload 6종 전부 PASS (47.5 / 10.7 / 25.3MB/s 등, size_ok=True)
+- **벤치 vs yt-dlp** (itag 251, 동일 영상): yt-dlp 3.16s (3.1MB/s, 추출 포함) vs ydpy 1.62s (6.0MB/s, 추출 포함) — ydpy 약 2배 빠름. 다만 파일 크기 상이(9730538 vs 9802222): 출처 클라이언트가 달라 다른 인코딩으로 추정 — 정밀 비교는 같은 클라이언트 강제 시 필요
+- 공개 API: `DownloadOptions`/`DownloadResult` 최상위 export, README 퀵스타트(sync/async/sink/options/errors) 작성

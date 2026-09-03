@@ -167,7 +167,6 @@ def _pump(response: httpx.Response, sink: Sink, downloaded: int, total: int | No
     block_size = options.initial_block_size
     window_start = time.monotonic()
     window_bytes = 0
-    throttle_started: float | None = None
     while True:
         # Accumulate raw chunks until one adaptive block is filled (or EOF).
         block = bytearray()
@@ -191,15 +190,12 @@ def _pump(response: httpx.Response, sink: Sink, downloaded: int, total: int | No
             if window_elapsed >= 3.0:
                 window_speed = window_bytes / window_elapsed
                 if window_speed < options.throttled_rate_limit:
-                    throttle_started = throttle_started or now
-                    if now - throttle_started > 3.0:
-                        raise ThrottledDownload(
-                            f'Speed {window_speed:.0f} B/s stayed under '
-                            f'{options.throttled_rate_limit} B/s for 3 seconds')
-                else:
-                    throttle_started = None
-                    window_start = now
-                    window_bytes = 0
+                    # A full 3s window below the limit: assume CDN throttling.
+                    raise ThrottledDownload(
+                        f'Speed {window_speed:.0f} B/s stayed under '
+                        f'{options.throttled_rate_limit} B/s for 3 seconds')
+                window_start = now
+                window_bytes = 0
         if options.progress:
             total_elapsed = now - start_time
             speed = downloaded / total_elapsed if total_elapsed else None
@@ -303,7 +299,6 @@ async def _apump(response: httpx.AsyncResponse, sink: Sink, downloaded: int, tot
     block_size = options.initial_block_size
     window_start = time.monotonic()
     window_bytes = 0
-    throttle_started: float | None = None
     while True:
         block = bytearray()
         while len(block) < block_size:
@@ -326,15 +321,12 @@ async def _apump(response: httpx.AsyncResponse, sink: Sink, downloaded: int, tot
             if window_elapsed >= 3.0:
                 window_speed = window_bytes / window_elapsed
                 if window_speed < options.throttled_rate_limit:
-                    throttle_started = throttle_started or now
-                    if now - throttle_started > 3.0:
-                        raise ThrottledDownload(
-                            f'Speed {window_speed:.0f} B/s stayed under '
-                            f'{options.throttled_rate_limit} B/s for 3 seconds')
-                else:
-                    throttle_started = None
-                    window_start = now
-                    window_bytes = 0
+                    # A full 3s window below the limit: assume CDN throttling.
+                    raise ThrottledDownload(
+                        f'Speed {window_speed:.0f} B/s stayed under '
+                        f'{options.throttled_rate_limit} B/s for 3 seconds')
+                window_start = now
+                window_bytes = 0
         if options.progress:
             total_elapsed = now - start_time
             speed = downloaded / total_elapsed if total_elapsed else None
