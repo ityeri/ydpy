@@ -12,7 +12,7 @@ from ydpy.client import CLIENTS, DEFAULT_CLIENT_NAMES
 from ydpy.exceptions import ExtractionException
 from ydpy.request.player import aget_player, get_player
 from ydpy.request.webpage import aget_watch_page, get_watch_page
-from ydpy.streams import Format, VideoData
+from ydpy.streams import Format, StreamingProtocol, VideoData
 
 __all__ = [
     'extract_video_data',
@@ -29,7 +29,7 @@ def extract_formats_from_player_response(
     client: str,
     duration_ms: int | None,
 ) -> tuple[Format, ...]:
-    """Parse url-bearing formats out of a player response, flagging damaged ones."""
+    """Parse url-bearing formats, appending HLS/DASH manifest entries when present."""
     streaming_data = player_response.get('streamingData') or {}
     raw_formats = (streaming_data.get('formats') or []) + (streaming_data.get('adaptiveFormats') or [])
     formats: list[Format] = []
@@ -41,7 +41,24 @@ def extract_formats_from_player_response(
         if duration_ms and fmt.approx_duration_ms and fmt.approx_duration_ms < duration_ms // 2:
             fmt = _flag_damaged(fmt)
         formats.append(fmt)
+    formats.extend(_manifest_formats(streaming_data, client=client))
     return tuple(formats)
+
+
+def _manifest_formats(streaming_data: dict[str, Any], *, client: str) -> list[Format]:
+    """HLS/DASH master playlist entries for live and manifest-only streams."""
+    entries: list[Format] = []
+    for protocol_name, key in (('hls', 'hlsManifestUrl'), ('dash', 'dashManifestUrl')):
+        manifest_url = streaming_data.get(key)
+        if manifest_url:
+            entries.append(Format(
+                itag=0,
+                client=client,
+                url=manifest_url,
+                protocol=StreamingProtocol(protocol_name),
+                quality_label=protocol_name,
+            ))
+    return entries
 
 
 def _flag_damaged(fmt: Format) -> Format:

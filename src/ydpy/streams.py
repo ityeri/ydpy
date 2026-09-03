@@ -16,9 +16,18 @@ __all__ = [
     'Container',
     'VideoCodec',
     'AudioCodec',
+    'StreamingProtocol',
     'Format',
     'VideoData',
 ]
+
+
+class StreamingProtocol(str, enum.Enum):
+    """How a stream is delivered: one url, or a manifest of segments."""
+
+    HTTPS = 'https'
+    HLS = 'hls'
+    DASH = 'dash'
 
 
 class Container(str, enum.Enum):
@@ -93,6 +102,7 @@ class Format:
     itag: int
     client: str
     url: str
+    protocol: StreamingProtocol = StreamingProtocol.HTTPS
     mime_type: str | None = None
     codecs: str | None = None
     width: int | None = None
@@ -142,6 +152,11 @@ class Format:
 
     @staticmethod
     def from_json(raw: dict[str, Any], *, client: str) -> 'Format':
+        return Format.from_stream(raw, client=client, protocol=StreamingProtocol.HTTPS)
+
+    @staticmethod
+    def from_stream(raw: dict[str, Any], *, client: str,
+                    protocol: StreamingProtocol) -> 'Format':
         """Parse one streamingData format entry into a Format."""
         try:
             mime_type = raw.get('mimeType')
@@ -149,6 +164,7 @@ class Format:
                 itag=_int_or_none(raw.get('itag')) or 0,
                 client=client,
                 url=raw.get('url') or '',
+                protocol=protocol,
                 mime_type=mime_type,
                 codecs=_extract_codecs(mime_type),
                 width=_int_or_none(raw.get('width')),
@@ -173,13 +189,25 @@ class Format:
 
     def download(self, target: str | PathLike | Any, **kwargs: Any):
         """Download this stream into a path or a file-like sink (sync)."""
-        from ydpy.downloader import download_stream
-        return download_stream(self.url, target, **kwargs)
+        if self.protocol is StreamingProtocol.HTTPS:
+            from ydpy.downloader import download_stream
+            return download_stream(self.url, target, **kwargs)
+        if self.protocol is StreamingProtocol.HLS:
+            from ydpy.manifest import download_hls
+            return download_hls(self.url, target, **kwargs)
+        from ydpy.manifest import download_dash
+        return download_dash(self.url, target, **kwargs)
 
     async def adownload(self, target: str | PathLike | Any, **kwargs: Any):
         """Download this stream into a path or a file-like sink (async)."""
-        from ydpy.downloader import adownload_stream
-        return await adownload_stream(self.url, target, **kwargs)
+        if self.protocol is StreamingProtocol.HTTPS:
+            from ydpy.downloader import adownload_stream
+            return await adownload_stream(self.url, target, **kwargs)
+        if self.protocol is StreamingProtocol.HLS:
+            from ydpy.manifest import adownload_hls
+            return await adownload_hls(self.url, target, **kwargs)
+        from ydpy.manifest import adownload_dash
+        return await adownload_dash(self.url, target, **kwargs)
 
 
 def _extract_codecs(mime_type: str | None) -> str | None:

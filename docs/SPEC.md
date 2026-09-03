@@ -350,3 +350,10 @@ YdpyException(Exception)
 - **M3(JS 챌린지 solver) = 보류**: 2026년 현재 n 미해결 스트림이 스로틀되는 경로를 전혀 찾지 못함(5개 클라이언트 전부 Range 요청 시 풀스피드). solver는 n-스로틀 포맷이 실제 출현할 때(예: web 4K pot 경로) 구현 — dormant
 - **M4(POT) = web 전용 옵션**: 익명 다운로드의 실질 필요 없음. tv_downgraded가 pot 없이 1080p 커버. web(4K/HDR 등) 활성화는 외부 pot provider 연동 시 재검증 (provider 없이는 검증 불가 — 대기)
 - **대신 구현**: 클라이언트 폴백 체인 `('visionos', 'tv_downgraded', 'mweb', 'android_vr')` — 첫 성공 클라이언트 승리, 실패 사유 누적 보고. 로그인/연령/멤버십 영상은 전 클라이언트 일관 실패 (v1 비목표 확인)
+
+### HLS/DASH 매니페스트 지원 (2026-09-03)
+- **HLS 구현·라이브 검증**: 마스터(m3u8, EXT-X-STREAM-INF variant 파싱, 최고 해상도 선택) → 미디어 플레이리스트(세그먼트 목록, ENDLIST 필수, EXT-X-KEY=거부) → 세그먼트 순차 다운로드(각각 Range 전송, 재시도). visionos VOD 검증: 동기 78.3MB/12.5s, 비동기 78.3MB/5.3s, 출력 MPEG-TS(0x47 sync) 유효
+- **세그먼트 URL 구조 실측**: videoplayback에 `govp/slices=0-740,.../file/seg.ts` — 부모 파일의 바이트 슬라이스 단위
+- **Format 통합**: `StreamingProtocol` enum(HTTPS/HLS/DASH) + Format.protocol. streamingData에 hls/dashManifestUrl이 있으면 항상 manifest 엔트리(itag 0, quality_label='hls'/'dash') 추가. download()가 protocol에 따라 라우팅
+- **DASH는 스캐폴드만**: 현재 클라이언트 세트에서 dashManifestUrl을 주는 응답이 전무(라이브 샘플 부재) → 명확한 에러와 함께 보류. MPD 샘플 확보 시 구현
+- **한계**: 라이브(ENDLIST 없는) HLS는 미지원(명확한 에러) — 종료 라이브 VOD만. 최고 해상도 variant 자동 선택(개별 variant 선택 API는 추후)
