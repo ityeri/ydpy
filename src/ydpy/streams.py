@@ -193,9 +193,9 @@ class Format:
             from ydpy.downloader import download_stream
             return download_stream(self.url, target, **kwargs)
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.manifest import download_hls
+            from ydpy.downloader import download_hls
             return download_hls(self.url, target, **kwargs)
-        from ydpy.manifest import download_dash
+        from ydpy.downloader import download_dash
         return download_dash(self.url, target, **kwargs)
 
     async def adownload(self, target: str | PathLike | Any, **kwargs: Any):
@@ -204,9 +204,9 @@ class Format:
             from ydpy.downloader import adownload_stream
             return await adownload_stream(self.url, target, **kwargs)
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.manifest import adownload_hls
+            from ydpy.downloader import adownload_hls
             return await adownload_hls(self.url, target, **kwargs)
-        from ydpy.manifest import adownload_dash
+        from ydpy.downloader import adownload_dash
         return await adownload_dash(self.url, target, **kwargs)
 
 

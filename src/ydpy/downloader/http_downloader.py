@@ -1,69 +1,31 @@
-"""Sequential single-connection downloader with adaptive buffering and resume retries."""
+"""Continuous HTTP downloader: one stream url, whole body, single connection."""
 
 from __future__ import annotations
 
 import asyncio
-import os
 import time
-from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from typing import Any
 
 import httpx
 
+from ydpy.downloader.utils import (
+    DownloadOptions,
+    DownloadProgress,
+    DownloadResult,
+    Sink,
+    STREAM_HEADERS,
+    open_target,
+)
 from ydpy.exceptions import DownloadException, ThrottledDownload
-from ydpy.request.utils import BROWSER_USER_AGENT
 
 __all__ = [
-    'Sink',
-    'DownloadOptions',
-    'DownloadProgress',
-    'DownloadResult',
+    'best_block_size',
     'download_stream',
     'adownload_stream',
 ]
 
 MAX_BLOCK_SIZE = 4 * 1024 * 1024  # adaptive buffering never exceeds 4 MiB
 _RAW_CHUNK_SIZE = 64 * 1024       # pull size from the socket before buffering up
-_IDENTITY_HEADERS = {'Accept-Encoding': 'identity'}
-
-
-class Sink(Protocol):
-    """Anything with a write(data) method: file objects, BytesIO, wrappers."""
-
-    def write(self, data: bytes) -> None: ...
-
-
-@dataclass(frozen=True, slots=True)
-class DownloadOptions:
-    """Tuning knobs for one download call."""
-
-    retries: int = 5
-    timeout: float = 30.0
-    initial_block_size: int = 256 * 1024
-    throttled_rate_limit: int | None = None
-    verify_tls: bool = True
-    http2: bool = False
-    proxy: str | None = None
-    progress: Callable[['DownloadProgress'], None] | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class DownloadProgress:
-    """Periodic progress report handed to the progress callback."""
-
-    downloaded: int
-    total: int | None
-    speed_bps: float | None
-    elapsed_seconds: float
-
-
-@dataclass(frozen=True, slots=True)
-class DownloadResult:
-    """Outcome of a successful download."""
-
-    bytes_written: int
-    elapsed_seconds: float
-    url: str
 
 
 def best_block_size(elapsed_time: float, bytes_read: int) -> int:
@@ -78,15 +40,6 @@ def best_block_size(elapsed_time: float, bytes_read: int) -> int:
     if rate < new_min:
         return int(new_min)
     return int(rate)
-
-
-def _open_target(target: str | Any) -> tuple[Any, bool]:
-    """Return (sink, should_close); path targets are opened for writing."""
-    if isinstance(target, (str, bytes, os.PathLike)):
-        return open(target, 'wb'), True
-    if hasattr(target, 'write'):
-        return target, False
-    raise TypeError(f'Download target must be a path or a file-like object, got {type(target)!r}')
 
 
 def _is_resettable(sink: Any) -> bool:
@@ -109,12 +62,12 @@ def download_stream(
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (sync)."""
     options = options or DownloadOptions()
-    sink, should_close = _open_target(target)
+    sink, should_close = open_target(target)
     own_client = client is None
     if own_client:
         client = httpx.Client(timeout=options.timeout, verify=options.verify_tls,
                               http2=options.http2, proxy=options.proxy, follow_redirects=True)
-    headers = {'User-Agent': BROWSER_USER_AGENT, **_IDENTITY_HEADERS}
+    headers = dict(STREAM_HEADERS)
     start_time = time.monotonic()
     downloaded = 0
     total: int | None = None
@@ -123,8 +76,8 @@ def download_stream(
         while True:
             try:
                 range_headers = dict(headers)
-                # googlevideo throttles Range-less full fetches hard (measured 2026-09:
-                # ~32 KB/s vs full speed with a Range header), so always range.
+                # googlevideo throttles Range-less full fetches hard (measured
+                # 2026-09: ~32 KB/s vs full speed with a Range header), so always range.
                 range_headers['Range'] = f'bytes={downloaded}-'
                 with client.stream('GET', url, headers=range_headers) as response:
                     if response.status_code == 416:
@@ -241,12 +194,12 @@ async def adownload_stream(
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (async)."""
     options = options or DownloadOptions()
-    sink, should_close = _open_target(target)
+    sink, should_close = open_target(target)
     own_client = async_client is None
     if own_client:
         async_client = httpx.AsyncClient(timeout=options.timeout, verify=options.verify_tls,
                                          http2=options.http2, proxy=options.proxy, follow_redirects=True)
-    headers = {'User-Agent': BROWSER_USER_AGENT, **_IDENTITY_HEADERS}
+    headers = dict(STREAM_HEADERS)
     start_time = time.monotonic()
     downloaded = 0
     total: int | None = None
@@ -255,8 +208,8 @@ async def adownload_stream(
         while True:
             try:
                 range_headers = dict(headers)
-                # googlevideo throttles Range-less full fetches hard (measured 2026-09:
-                # ~32 KB/s vs full speed with a Range header), so always range.
+                # googlevideo throttles Range-less full fetches hard (measured
+                # 2026-09: ~32 KB/s vs full speed with a Range header), so always range.
                 range_headers['Range'] = f'bytes={downloaded}-'
                 async with async_client.stream('GET', url, headers=range_headers) as response:
                     if response.status_code == 416:

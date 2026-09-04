@@ -1,7 +1,7 @@
-"""HLS manifest parsing and segment download (VOD scope).
+"""Segmented downloader: media driven by a manifest (HLS now, DASH scaffolded).
 
-DASH support is scaffolded but not implemented: no client in the current set
-serves a dashManifestUrl, so there is no live shape to parse against yet.
+HLS and DASH are one domain: a manifest describes ordered byte sources
+(segments), and downloading means fetching each in order into the sink.
 """
 
 from __future__ import annotations
@@ -15,7 +15,13 @@ from typing import Any
 import httpx
 import yarl
 
-from ydpy.downloader import DownloadOptions, DownloadProgress, DownloadResult, Sink
+from ydpy.downloader.utils import (
+    DownloadOptions,
+    DownloadProgress,
+    DownloadResult,
+    STREAM_HEADERS,
+    open_target,
+)
 from ydpy.exceptions import DataParsingException, DownloadException
 from ydpy.request.utils import BROWSER_USER_AGENT, aget_text, get_text
 
@@ -31,8 +37,7 @@ __all__ = [
 ]
 
 _STREAM_INF_RE = re.compile(r'^#EXT-X-STREAM-INF:(.*)$')
-_IDENTITY_HEADERS = {'User-Agent': BROWSER_USER_AGENT, 'Accept-Encoding': 'identity',
-                     'Range': 'bytes=0-'}
+_SEGMENT_HEADERS = {**STREAM_HEADERS, 'Range': 'bytes=0-'}
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,7 +143,7 @@ def _pick_variant(variants: tuple[HlsVariant, ...]) -> HlsVariant:
 
 def download_hls(
     master_url: str,
-    target: str | Sink,
+    target: str | Any,
     *,
     options: DownloadOptions | None = None,
     client: httpx.Client | None = None,
@@ -151,14 +156,14 @@ def download_hls(
                               http2=options.http2, proxy=options.proxy, follow_redirects=True)
     try:
         start_time = time.monotonic()
-        master_text = get_text(master_url, headers=_IDENTITY_HEADERS, client=client)
+        master_text = get_text(master_url, headers=_SEGMENT_HEADERS, client=client)
         variants = parse_hls_master(master_text, master_url)
         if variants:
             media_url = _pick_variant(variants).uri
         else:
             # Some playlists are already media playlists (no renditions).
             media_url = master_url
-        media_text = get_text(media_url, headers=_IDENTITY_HEADERS, client=client)
+        media_text = get_text(media_url, headers=_SEGMENT_HEADERS, client=client)
         playlist = parse_hls_media(media_text, media_url)
         if not playlist.endlist:
             raise DownloadException(
@@ -171,14 +176,13 @@ def download_hls(
 
 def _download_segments(
     segment_urls: tuple[str, ...],
-    target: str | Sink,
+    target: str | Any,
     options: DownloadOptions,
     client: httpx.Client,
     start_time: float,
 ) -> DownloadResult:
     """Fetch every segment in order and concatenate it into the target."""
-    from ydpy.downloader import _open_target
-    sink, should_close = _open_target(target)
+    sink, should_close = open_target(target)
     try:
         total_written = 0
         for index, segment_url in enumerate(segment_urls):
@@ -205,10 +209,11 @@ def _fetch_segment(segment_url: str, options: DownloadOptions,
     """GET one segment with retries; range request keeps the CDN honest."""
     for attempt in range(options.retries + 1):
         try:
-            response = client.get(segment_url, headers=_IDENTITY_HEADERS)
+            response = client.get(segment_url, headers=_SEGMENT_HEADERS)
             if response.status_code == 416:
                 # Range on a fully-served slice means the server wants the body.
-                response = client.get(segment_url, headers={'User-Agent': BROWSER_USER_AGENT})
+                response = client.get(segment_url,
+                                      headers={'User-Agent': BROWSER_USER_AGENT})
             if response.status_code >= 400:
                 raise DownloadException(f'HTTP {response.status_code} for segment {index}')
             return response.content
@@ -220,7 +225,7 @@ def _fetch_segment(segment_url: str, options: DownloadOptions,
 
 async def adownload_hls(
     master_url: str,
-    target: str | Sink,
+    target: str | Any,
     *,
     options: DownloadOptions | None = None,
     async_client: httpx.AsyncClient | None = None,
@@ -234,11 +239,11 @@ async def adownload_hls(
                                          follow_redirects=True)
     try:
         start_time = time.monotonic()
-        master_text = await aget_text(master_url, headers=_IDENTITY_HEADERS,
+        master_text = await aget_text(master_url, headers=_SEGMENT_HEADERS,
                                       async_client=async_client)
         variants = parse_hls_master(master_text, master_url)
         media_url = _pick_variant(variants).uri if variants else master_url
-        media_text = await aget_text(media_url, headers=_IDENTITY_HEADERS,
+        media_text = await aget_text(media_url, headers=_SEGMENT_HEADERS,
                                      async_client=async_client)
         playlist = parse_hls_media(media_text, media_url)
         if not playlist.endlist:
@@ -253,14 +258,13 @@ async def adownload_hls(
 
 async def _adownload_segments(
     segment_urls: tuple[str, ...],
-    target: str | Sink,
+    target: str | Any,
     options: DownloadOptions,
     async_client: httpx.AsyncClient,
     start_time: float,
 ) -> DownloadResult:
     """Async twin of _download_segments."""
-    from ydpy.downloader import _open_target
-    sink, should_close = _open_target(target)
+    sink, should_close = open_target(target)
     try:
         total_written = 0
         for index, segment_url in enumerate(segment_urls):
@@ -287,7 +291,7 @@ async def _afetch_segment(segment_url: str, options: DownloadOptions,
     """Async twin of _fetch_segment."""
     for attempt in range(options.retries + 1):
         try:
-            response = await async_client.get(segment_url, headers=_IDENTITY_HEADERS)
+            response = await async_client.get(segment_url, headers=_SEGMENT_HEADERS)
             if response.status_code == 416:
                 response = await async_client.get(
                     segment_url, headers={'User-Agent': BROWSER_USER_AGENT})
