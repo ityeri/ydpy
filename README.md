@@ -1,9 +1,9 @@
 <h1 align="center">ydpy</h1>
 
 <div align="center">
-  <b><code>Youtube </code></b><br>
+  <b><code>Youtube.</code></b><br>
   <b><code>Download</code></b><br>
-  <b><code>PYthon  </code></b><br>
+  <b><code>PYthon..</code></b><br>
 </div>
 
 <br>
