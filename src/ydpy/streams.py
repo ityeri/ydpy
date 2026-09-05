@@ -5,10 +5,12 @@ from __future__ import annotations
 import dataclasses
 import enum
 from dataclasses import dataclass
-from os import PathLike
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yarl
+
+if TYPE_CHECKING:
+    from ydpy.downloader.utils import Target
 
 from ydpy.exceptions import DataParsingException
 
@@ -187,7 +189,7 @@ class Format:
         """Return a copy whose stream url carries the given po token."""
         return dataclasses.replace(self, url=str(yarl.URL(self.url).update_query({'pot': token})))
 
-    def download(self, target: str | PathLike | Any, **kwargs: Any):
+    def download(self, target: Target, **kwargs: Any):
         """Download this stream into a path or a file-like sink (sync)."""
         if self.protocol is StreamingProtocol.HTTPS:
             from ydpy.downloader import download_stream
@@ -198,7 +200,7 @@ class Format:
         from ydpy.downloader import download_dash
         return download_dash(self.url, target, **kwargs)
 
-    async def adownload(self, target: str | PathLike | Any, **kwargs: Any):
+    async def adownload(self, target: Target, **kwargs: Any):
         """Download this stream into a path or a file-like sink (async)."""
         if self.protocol is StreamingProtocol.HTTPS:
             from ydpy.downloader import adownload_stream

@@ -20,6 +20,8 @@ from ydpy.downloader.utils import (
     DownloadProgress,
     DownloadResult,
     STREAM_HEADERS,
+    Sink,
+    Target,
     open_target,
 )
 from ydpy.exceptions import DataParsingException, DownloadException
@@ -143,7 +145,7 @@ def _pick_variant(variants: tuple[HlsVariant, ...]) -> HlsVariant:
 
 def download_hls(
     master_url: str,
-    target: str | Any,
+    target: Target,
     *,
     options: DownloadOptions | None = None,
     client: httpx.Client | None = None,
@@ -176,7 +178,7 @@ def download_hls(
 
 def _download_segments(
     segment_urls: tuple[str, ...],
-    target: str | Any,
+    target: Target,
     options: DownloadOptions,
     client: httpx.Client,
     start_time: float,
@@ -225,7 +227,7 @@ def _fetch_segment(segment_url: str, options: DownloadOptions,
 
 async def adownload_hls(
     master_url: str,
-    target: str | Any,
+    target: Target,
     *,
     options: DownloadOptions | None = None,
     async_client: httpx.AsyncClient | None = None,
@@ -258,7 +260,7 @@ async def adownload_hls(
 
 async def _adownload_segments(
     segment_urls: tuple[str, ...],
-    target: str | Any,
+    target: Target,
     options: DownloadOptions,
     async_client: httpx.AsyncClient,
     start_time: float,

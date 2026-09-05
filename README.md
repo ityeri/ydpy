@@ -20,10 +20,10 @@
 
 - Rich support for Sync and async APIs
 - Carries over yt-dlp's bot-bypass knowledge
-  (multi-client innertube, JS challenge solving, PO token policy) (but this is not a fork, code is cleen-room)
+  (multi-client innertube, JS challenge solving, PO token policy) (but this is not a fork, code is clean-room)
 - Fetches the playable stream list of a single video
 - Downloads an individual stream as-is: no remuxing, no ffmpeg, no filename magic
-- python >= 3.11
+- python >= 3.10
 
 
 ## Install

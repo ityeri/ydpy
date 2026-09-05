@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import io
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from typing import BinaryIO, Callable, TypeAlias
 
 from ydpy.request.utils import BROWSER_USER_AGENT
 
 __all__ = [
     'Sink',
+    'Target',
     'DownloadOptions',
     'DownloadProgress',
     'DownloadResult',
@@ -17,11 +19,12 @@ __all__ = [
     'open_target',
 ]
 
+# Commonly-used writable-bytes targets. Structural at runtime: anything with a
+# write(data: bytes) method works, even when it is not in this union.
+Sink: TypeAlias = BinaryIO | io.BufferedIOBase | io.RawIOBase
 
-class Sink(Protocol):
-    """Anything with a write(data) method: file objects, BytesIO, wrappers."""
-
-    def write(self, data: bytes) -> None: ...
+# What a download accepts: a local path or a sink to write into.
+Target: TypeAlias = str | os.PathLike[str] | Sink
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,10 +64,11 @@ class DownloadResult:
 STREAM_HEADERS = {'User-Agent': BROWSER_USER_AGENT, 'Accept-Encoding': 'identity'}
 
 
-def open_target(target: str | Any) -> tuple[Any, bool]:
+def open_target(target: Target) -> tuple[Sink, bool]:
     """Return (sink, should_close); path targets are opened for writing."""
     if isinstance(target, (str, bytes, os.PathLike)):
-        return open(target, 'wb'), True
+        opened = open(target, 'wb')
+        return opened, True
     if hasattr(target, 'write'):
         return target, False
     raise TypeError(f'Download target must be a path or a file-like object, got {type(target)!r}')

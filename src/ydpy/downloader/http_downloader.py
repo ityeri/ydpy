@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
 
 import httpx
 
@@ -14,6 +13,7 @@ from ydpy.downloader.utils import (
     DownloadResult,
     Sink,
     STREAM_HEADERS,
+    Target,
     open_target,
 )
 from ydpy.exceptions import DownloadException, ThrottledDownload
@@ -42,12 +42,12 @@ def best_block_size(elapsed_time: float, bytes_read: int) -> int:
     return int(rate)
 
 
-def _is_resettable(sink: Any) -> bool:
+def _is_resettable(sink: Sink) -> bool:
     """Buffers and real files can be rewound; raw streams cannot."""
     return hasattr(sink, 'seek') and hasattr(sink, 'truncate')
 
 
-def _reset_sink(sink: Any) -> None:
+def _reset_sink(sink: Sink) -> None:
     """Rewind a resettable sink to zero length."""
     sink.seek(0)
     sink.truncate(0)
@@ -55,7 +55,7 @@ def _reset_sink(sink: Any) -> None:
 
 def download_stream(
     url: str,
-    target: str | Sink,
+    target: Target,
     *,
     options: DownloadOptions | None = None,
     client: httpx.Client | None = None,
@@ -187,7 +187,7 @@ def _content_length(headers: httpx.Headers, offset: int, content_range: str | No
 
 async def adownload_stream(
     url: str,
-    target: str | Sink,
+    target: Target,
     *,
     options: DownloadOptions | None = None,
     async_client: httpx.AsyncClient | None = None,
