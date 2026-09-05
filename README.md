@@ -1,12 +1,12 @@
 <h1 align="center">ydpy</h1>
 
 <div align="center">
-  <div align="left" style="width: fit-content">
-    <b>Youtube</b><br>
-    <b>Download</b><br>
-    <b>PYthon</b><br>
-  </div>
+  <b><code>Youtube </code></b><br>
+  <b><code>Download</code></b><br>
+  <b><code>PYthon  </code></b><br>
 </div>
+
+<br>
 
 <p align="center">
   Clean-room, low-level YouTube download library: multi-client bot-bypass, fast streams, sync &amp; async
