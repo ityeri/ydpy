@@ -1,4 +1,8 @@
-"""Continuous HTTP downloader: one stream url, whole body, single connection."""
+"""Continuous HTTP downloader: one stream url, whole body, single connection.
+
+Large streams are pulled in chunked range requests (default 10 MiB) because
+googlevideo throttles long-lived single connections hard; yt-dlp does the same.
+"""
 
 from __future__ import annotations
 
@@ -62,6 +66,7 @@ def download_stream(
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (sync)."""
     options = options or DownloadOptions()
+    chunk_size = options.chunk_size
     sink, should_close = open_target(target)
     own_client = client is None
     if own_client:
@@ -71,32 +76,47 @@ def download_stream(
     start_time = time.monotonic()
     downloaded = 0
     total: int | None = None
+    ranged = True  # stays True while the server honors Range
     try:
         attempt = 0
         while True:
             try:
                 range_headers = dict(headers)
-                # googlevideo throttles Range-less full fetches hard (measured
-                # 2026-09: ~32 KB/s vs full speed with a Range header), so always range.
-                range_headers['Range'] = f'bytes={downloaded}-'
+                offset = downloaded
+                if ranged and (chunk_size > 0 or offset > 0):
+                    range_end = None if total is None and chunk_size <= 0 else (
+                        total - 1 if total is not None and (chunk_size <= 0
+                                                            or offset + chunk_size > total)
+                        else offset + chunk_size - 1)
+                    # googlevideo throttles Range-less full fetches hard (measured
+                    # 2026-09: ~32 KB/s vs full speed with a Range header).
+                    range_headers['Range'] = f'bytes={offset}-{"" if range_end is None else range_end}'
                 with client.stream('GET', url, headers=range_headers) as response:
                     if response.status_code == 416:
                         raise DownloadException('Server rejected the resume range (416)')
                     if response.status_code >= 400:
                         raise DownloadException(f'HTTP {response.status_code} while downloading')
                     content_range = response.headers.get('content-range')
-                    if downloaded > 0 and not _range_honored(content_range, downloaded):
+                    if offset > 0 and not _range_honored(content_range, offset):
                         if not _is_resettable(sink):
                             raise DownloadException(
                                 'Server ignored Range and the target cannot be rewound')
                         _reset_sink(sink)
                         downloaded = 0
-                    total = _content_length(response.headers, downloaded, content_range)
-                    downloaded = _pump(response, sink, downloaded, total, options, start_time)
-                    if total is not None and downloaded < total:
+                        offset = 0
+                    if content_range is None and offset == 0 and chunk_size > 0:
+                        # Server ignores Range entirely: fall back to one full read.
+                        ranged = False
+                    total = _content_length(response.headers, offset, content_range)
+                    stop_at = _chunk_stop_at(offset, total, chunk_size, ranged)
+                    downloaded = _pump(response, sink, downloaded, total, options,
+                                       start_time, stop_at)
+                    if total is not None and downloaded >= total:
+                        break
+                    if not ranged:
                         raise DownloadException(
                             f'Connection closed early: got {downloaded} of {total} bytes')
-                    break
+                    continue  # next range chunk
             except (httpx.TransportError, httpx.TimeoutException) as e:
                 attempt += 1
                 if attempt > options.retries:
@@ -113,21 +133,40 @@ def download_stream(
             client.close()
 
 
+def _chunk_stop_at(offset: int, total: int | None, chunk_size: int, ranged: bool) -> int | None:
+    """Absolute byte count where the current request should stop, or None for EOF."""
+    if not ranged or chunk_size <= 0:
+        return total
+    if total is not None:
+        return min(total, offset + chunk_size)
+    return offset + chunk_size
+
+
 def _pump(response: httpx.Response, sink: Sink, downloaded: int, total: int | None,
-          options: DownloadOptions, start_time: float) -> int:
+          options: DownloadOptions, start_time: float, stop_at: int | None) -> int:
     """Read the body in adaptive blocks, writing each block to the sink."""
     chunks = response.iter_bytes(_RAW_CHUNK_SIZE)
     block_size = options.initial_block_size
     window_start = time.monotonic()
     window_bytes = 0
     while True:
+        if stop_at is not None and downloaded >= stop_at:
+            return downloaded
         # Accumulate raw chunks until one adaptive block is filled (or EOF).
         block = bytearray()
         while len(block) < block_size:
             try:
                 piece = next(chunks)
             except StopIteration:
-                break
+                return downloaded
+            if stop_at is not None and downloaded + len(block) + len(piece) > stop_at:
+                piece = piece[:stop_at - downloaded - len(block)]
+                if not piece:
+                    return downloaded
+                block += piece
+                sink.write(bytes(block))
+                downloaded += len(block)
+                return downloaded
             block += piece
         if not block:
             return downloaded
@@ -154,8 +193,6 @@ def _pump(response: httpx.Response, sink: Sink, downloaded: int, total: int | No
             speed = downloaded / total_elapsed if total_elapsed else None
             options.progress(DownloadProgress(downloaded=downloaded, total=total,
                                               speed_bps=speed, elapsed_seconds=total_elapsed))
-        if total is not None and downloaded >= total:
-            return downloaded
 
 
 def _range_honored(content_range: str | None, requested_start: int) -> bool:
@@ -194,6 +231,7 @@ async def adownload_stream(
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (async)."""
     options = options or DownloadOptions()
+    chunk_size = options.chunk_size
     sink, should_close = open_target(target)
     own_client = async_client is None
     if own_client:
@@ -203,32 +241,47 @@ async def adownload_stream(
     start_time = time.monotonic()
     downloaded = 0
     total: int | None = None
+    ranged = True
     try:
         attempt = 0
         while True:
             try:
                 range_headers = dict(headers)
-                # googlevideo throttles Range-less full fetches hard (measured
-                # 2026-09: ~32 KB/s vs full speed with a Range header), so always range.
-                range_headers['Range'] = f'bytes={downloaded}-'
+                offset = downloaded
+                if ranged and (chunk_size > 0 or offset > 0):
+                    range_end = None if total is None and chunk_size <= 0 else (
+                        total - 1 if total is not None and (chunk_size <= 0
+                                                            or offset + chunk_size > total)
+                        else offset + chunk_size - 1)
+                    # googlevideo throttles Range-less full fetches hard (measured
+                    # 2026-09: ~32 KB/s vs full speed with a Range header).
+                    range_headers['Range'] = f'bytes={offset}-{"" if range_end is None else range_end}'
                 async with async_client.stream('GET', url, headers=range_headers) as response:
                     if response.status_code == 416:
                         raise DownloadException('Server rejected the resume range (416)')
                     if response.status_code >= 400:
                         raise DownloadException(f'HTTP {response.status_code} while downloading')
                     content_range = response.headers.get('content-range')
-                    if downloaded > 0 and not _range_honored(content_range, downloaded):
+                    if offset > 0 and not _range_honored(content_range, offset):
                         if not _is_resettable(sink):
                             raise DownloadException(
                                 'Server ignored Range and the target cannot be rewound')
                         _reset_sink(sink)
                         downloaded = 0
-                    total = _content_length(response.headers, downloaded, content_range)
-                    downloaded = await _apump(response, sink, downloaded, total, options, start_time)
-                    if total is not None and downloaded < total:
+                        offset = 0
+                    if content_range is None and offset == 0 and chunk_size > 0:
+                        # Server ignores Range entirely: fall back to one full read.
+                        ranged = False
+                    total = _content_length(response.headers, offset, content_range)
+                    stop_at = _chunk_stop_at(offset, total, chunk_size, ranged)
+                    downloaded = await _apump(response, sink, downloaded, total, options,
+                                              start_time, stop_at)
+                    if total is not None and downloaded >= total:
+                        break
+                    if not ranged:
                         raise DownloadException(
                             f'Connection closed early: got {downloaded} of {total} bytes')
-                    break
+                    continue  # next range chunk
             except (httpx.TransportError, httpx.TimeoutException) as e:
                 attempt += 1
                 if attempt > options.retries:
@@ -246,19 +299,29 @@ async def adownload_stream(
 
 
 async def _apump(response: httpx.AsyncResponse, sink: Sink, downloaded: int, total: int | None,
-                 options: DownloadOptions, start_time: float) -> int:
+                 options: DownloadOptions, start_time: float, stop_at: int | None) -> int:
     """Async twin of _pump."""
     chunks = response.aiter_bytes(_RAW_CHUNK_SIZE)
     block_size = options.initial_block_size
     window_start = time.monotonic()
     window_bytes = 0
     while True:
+        if stop_at is not None and downloaded >= stop_at:
+            return downloaded
         block = bytearray()
         while len(block) < block_size:
             try:
                 piece = await chunks.__anext__()
             except StopAsyncIteration:
-                break
+                return downloaded
+            if stop_at is not None and downloaded + len(block) + len(piece) > stop_at:
+                piece = piece[:stop_at - downloaded - len(block)]
+                if not piece:
+                    return downloaded
+                block += piece
+                sink.write(bytes(block))
+                downloaded += len(block)
+                return downloaded
             block += piece
         if not block:
             return downloaded
@@ -285,5 +348,3 @@ async def _apump(response: httpx.AsyncResponse, sink: Sink, downloaded: int, tot
             speed = downloaded / total_elapsed if total_elapsed else None
             options.progress(DownloadProgress(downloaded=downloaded, total=total,
                                               speed_bps=speed, elapsed_seconds=total_elapsed))
-        if total is not None and downloaded >= total:
-            return downloaded

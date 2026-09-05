@@ -29,11 +29,13 @@ Target: TypeAlias = str | os.PathLike[str] | Sink
 
 @dataclass(frozen=True, slots=True)
 class DownloadOptions:
-    """Tuning knobs for one download call."""
+    """Tuning knobs for one download call. Chunked range requests (default 10 MiB)
+avoid googlevideo throttling long-lived single connections."""
 
     retries: int = 5
     timeout: float = 30.0
     initial_block_size: int = 256 * 1024
+    chunk_size: int = 10 * 1024 * 1024  # 0 disables chunked range requests
     throttled_rate_limit: int | None = None
     verify_tls: bool = True
     http2: bool = False
