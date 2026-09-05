@@ -1,22 +1,45 @@
-# ydpy
+<h1 align="center">ydpy</h1>
 
-Low-level, YouTube-only stream fetching/downloading library.
+<div align="center">
+  <div align="left" style="width: fit-content">
+    <b>Youtube</b><br>
+    <b>Download</b><br>
+    <b>PYthon</b><br>
+  </div>
+</div>
 
-- Fetches the playable stream list of a single video — no playlist expansion, ever
+<p align="center">
+  Fast, lightweight, simple, with rich-bot-detection-avoidance youtube download library written in python
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
+
+---
+
+- Rich support for Sync and async APIs
+- Carries over yt-dlp's bot-bypass knowledge
+  (multi-client innertube, JS challenge solving, PO token policy) (but this is not a fork, code is cleen-room)
+- Fetches the playable stream list of a single video
 - Downloads an individual stream as-is: no remuxing, no ffmpeg, no filename magic
-- Carries over yt-dlp's bot-bypass knowledge (multi-client innertube, JS challenge
-  solving, PO token policy) with a clean-room codebase
-- Sync **and** async APIs, sink-based output (path / file-like / memory buffer)
-- Python >= 3.11, dependencies: `httpx` + `yarl`
+- python >= 3.11
 
-> Under active development — live-verified findings and the project plan are
-> kept out-of-repo in the maintainer's notes.
 
 ## Install
 
+Using uv & pip
 ```bash
-uv add ydpy        # or: pip install ydpy
+pip install ydpy # or: uv add ydpy
 ```
+Using pyproject.toml
+```toml
+[project]
+dependencies = [
+    "ydpy"
+]
+```
+
 
 ## Quickstart
 
@@ -30,17 +53,20 @@ for fmt in data.formats:
     print(fmt.itag, fmt.mime_type, fmt.width, fmt.height, fmt.bitrate)
 
 # pick the best audio stream
-audio = max((f for f in data.formats if f.is_audio),
-            key=lambda f: f.bitrate or 0)
+audio = max(
+    (f for f in data.formats if f.is_audio),
+    key=lambda f: f.bitrate or 0
+)
+
 audio.download("song.webm")                       # local path
-audio.download(open("song.webm", "wb"))           # file-like
+audio.download(open("song.webm", "wb"))           # or file-like
+
 import io
 buf = io.BytesIO()
-audio.download(buf)                               # memory buffer
+audio.download(buf)                               # or memory buffer
 ```
 
 Async download:
-
 ```python
 import asyncio
 
@@ -53,15 +79,9 @@ async def main():
 asyncio.run(main())
 ```
 
-## Format objects
-
-`Format` is an immutable snapshot of one stream. Properties: `itag`, `mime_type`,
-`container`, `video_codec`, `audio_codec`, `width`, `height`, `fps`, `bitrate`,
-`filesize`, `approx_duration_ms`, `quality_label`, `has_drm`, `is_video`,
-`is_audio`, `is_damaged`. URL tweaks return copies: `fmt.with_n(...)`,
-`fmt.with_pot(...)`.
 
 ## Options & progress
+You can specify the progress logic and throttle limit or etc. like below:
 
 ```python
 from ydpy import DownloadOptions
@@ -77,27 +97,15 @@ fmt.download("out.webm", options=DownloadOptions(
 ))
 ```
 
-Downloads always use `Accept-Encoding: identity` plus a `Range` header
-(googlevideo throttles Range-less full fetches to ~32 KB/s) and adapt the read
-buffer up to 4 MiB. Transport errors retry with resume from the last byte.
 
-## Errors
+## What is the difference between pytube and yt-dlp
+Neither supports async. It can be circumvented by using `asyncio.to_thread`, etc.,
+but it causes an unexpected event loop blocking occasionally and inefficient.
 
-All exceptions derive from `ydpy.exceptions.YdpyException`:
-`InvalidVideoIdentifierException`, `RequestException`, `DataParsingException`,
-`ExtractionException`, `DownloadException`, `ThrottledDownload`.
+for yt-dlp,
+Basically, yt-dlp is a CLI tool, so the library is just a shell invoking it internally.
+Because of that, yt-dlp has a lot of convenience features
+like auto video and audio synthesizing or playlist downloading.
 
-## Current status (2026-09)
-
-- Primary path: anonymous `visionos` client — playable formats with direct URLs,
-  no JS challenge, no PO token needed (live-verified full speed)
-- Web client streams need a PO token provider (planned)
-- Not included: merging, playlists, availability checks (yspy territory), login
-
-## Dev
-
-```bash
-uv sync
-uv run python scripts/probe.py <video_id>    # raw per-client probe
-uv run python scripts/dl_test.py <video_id>  # download test (file + buffer)
-```
+But from the perspective of library, this means yt-dlp has many unexpected behaviors.
+And because yt-dlp is a CLI tool, configurations should also fit a CLI
