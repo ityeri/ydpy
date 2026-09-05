@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = [
     { name = "ityeri", email = "ityeri9@gmail.com" },
 ]
-description = "Low-level YouTube-only stream fetching/downloading library with bot-bypass (JS challenge solving, PO token policy)"
+description = "Fast, lightweight, simple, with async support and rich-bot-detection-avoidance youtube download library written in python"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
