@@ -79,6 +79,7 @@ def download_stream(
     ranged = True  # stays True while the server honors Range
     try:
         attempt = 0
+        no_progress = 0
         while True:
             try:
                 range_headers = dict(headers)
@@ -116,6 +117,14 @@ def download_stream(
                     if not ranged:
                         raise DownloadException(
                             f'Connection closed early: got {downloaded} of {total} bytes')
+                    if downloaded == offset:
+                        no_progress += 1
+                        if no_progress >= 3:
+                            raise DownloadException(
+                                'No download progress across 3 consecutive responses; '
+                                'aborting to avoid an infinite request loop')
+                    else:
+                        no_progress = 0
                     continue  # next range chunk
             except (httpx.TransportError, httpx.TimeoutException) as e:
                 attempt += 1
@@ -158,16 +167,14 @@ def _pump(response: httpx.Response, sink: Sink, downloaded: int, total: int | No
             try:
                 piece = next(chunks)
             except StopIteration:
-                return downloaded
+                break
             if stop_at is not None and downloaded + len(block) + len(piece) > stop_at:
                 piece = piece[:stop_at - downloaded - len(block)]
                 if not piece:
-                    return downloaded
-                block += piece
-                sink.write(bytes(block))
-                downloaded += len(block)
-                return downloaded
+                    break
             block += piece
+            if stop_at is not None and downloaded + len(block) >= stop_at:
+                break
         if not block:
             return downloaded
         block_start = time.monotonic()
@@ -244,6 +251,7 @@ async def adownload_stream(
     ranged = True
     try:
         attempt = 0
+        no_progress = 0
         while True:
             try:
                 range_headers = dict(headers)
@@ -281,6 +289,14 @@ async def adownload_stream(
                     if not ranged:
                         raise DownloadException(
                             f'Connection closed early: got {downloaded} of {total} bytes')
+                    if downloaded == offset:
+                        no_progress += 1
+                        if no_progress >= 3:
+                            raise DownloadException(
+                                'No download progress across 3 consecutive responses; '
+                                'aborting to avoid an infinite request loop')
+                    else:
+                        no_progress = 0
                     continue  # next range chunk
             except (httpx.TransportError, httpx.TimeoutException) as e:
                 attempt += 1
@@ -313,16 +329,14 @@ async def _apump(response: httpx.AsyncResponse, sink: Sink, downloaded: int, tot
             try:
                 piece = await chunks.__anext__()
             except StopAsyncIteration:
-                return downloaded
+                break
             if stop_at is not None and downloaded + len(block) + len(piece) > stop_at:
                 piece = piece[:stop_at - downloaded - len(block)]
                 if not piece:
-                    return downloaded
-                block += piece
-                sink.write(bytes(block))
-                downloaded += len(block)
-                return downloaded
+                    break
             block += piece
+            if stop_at is not None and downloaded + len(block) >= stop_at:
+                break
         if not block:
             return downloaded
         block_start = time.monotonic()
