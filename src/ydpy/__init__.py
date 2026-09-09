@@ -2,7 +2,7 @@
 
 # Single source of truth: dist metadata (dev stamps from CI, etc.);
 # falls back to the constant when running from a source tree.
-__version__ = '0.1.0'
+__version__ = '1.0.0'
 try:
     from importlib.metadata import version as _package_version
 
