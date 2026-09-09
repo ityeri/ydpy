@@ -20,7 +20,6 @@ __all__ = [
     'AudioCodec',
     'StreamingProtocol',
     'Format',
-    'VideoData',
 ]
 
 
@@ -218,14 +217,3 @@ def _extract_codecs(mime_type: str | None) -> str | None:
         return None
     codecs_part = mime_type.split('codecs=', 1)[1].strip()
     return codecs_part.strip('"')
-
-
-@dataclass(frozen=True, slots=True)
-class VideoData:
-    """Immutable snapshot of one video's playable streams."""
-
-    video_id: str
-    title: str | None
-    duration_ms: int | None
-    client: str
-    formats: tuple[Format, ...]
