@@ -5,7 +5,7 @@ import pathlib
 
 from ydpy.request.webpage import (
     extract_initial_player_response,
-    extract_ytcfg,
+    extract_ytcfg
 )
 
 FIXTURE = pathlib.Path(__file__).parent / 'fixtures' / 'watch_page.html'

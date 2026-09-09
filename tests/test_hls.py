@@ -7,7 +7,7 @@ import pytest
 from ydpy.downloader.segment_downloader import (
     parse_hls_master,
     parse_hls_media,
-    _pick_variant,
+    _pick_variant
 )
 from ydpy.exceptions import DataParsingException
 

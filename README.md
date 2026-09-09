@@ -46,9 +46,8 @@ dependencies = [
 ```python
 import ydpy
 
-video = ydpy.Video("https://www.youtube.com/watch?v=YE7VzlLtp-4")
-
-data = video.fetch()          # or: await video.afetch()
+data = ydpy.PlayableVideo.fetch("https://www.youtube.com/watch?v=YE7VzlLtp-4")
+# or: data = await ydpy.PlayableVideo.afetch("https://www.youtube.com/watch?v=YE7VzlLtp-4")
 for fmt in data.formats:
     print(fmt.itag, fmt.mime_type, fmt.width, fmt.height, fmt.bitrate)
 
@@ -71,7 +70,7 @@ Async download:
 import asyncio
 
 async def main():
-    data = await ydpy.Video("...").afetch()
+    data = await ydpy.PlayableVideo.afetch("...")
     fmt = next(f for f in data.formats if f.itag == 137)
     result = await fmt.adownload("video.mp4")
     print(f"{result.bytes_written} bytes")
@@ -89,12 +88,15 @@ from ydpy import DownloadOptions
 def progress(p):
     print(f"{p.downloaded}/{p.total} bytes at {p.speed_bps / 1e6:.1f} MB/s")
 
-fmt.download("out.webm", options=DownloadOptions(
-    retries=5,
-    timeout=30.0,
-    throttled_rate_limit=500_000,     # raise ThrottledDownload if sustained slower
-    progress=progress,
-))
+fmt.download(
+    "out.webm",
+    options=DownloadOptions(
+        retries=5,
+        timeout=30.0,
+        throttled_rate_limit=500_000,  # raise ThrottledDownload if sustained slower
+        progress=progress
+    )
+)
 ```
 
 ## How it avoids bot detection & why it is fast
@@ -144,7 +146,7 @@ long-connection throttle this library is built to avoid.
 ```python
 best_video = max(
     (f for f in data.formats if f.is_video and not f.is_damaged),
-    key=lambda f: (f.height or 0, f.bitrate or 0),
+    key=lambda f: (f.height or 0, f.bitrate or 0)
 )
 
 best_video.itag          # 137 — stable identifier
@@ -189,7 +191,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     info = ydl.extract_info(url, download=False)
 ```
 
-ydpy takes the opposite route: `Video(url).fetch()` returns playable streams
-and nothing else happens. No downloads you did not ask for, no merging, no
-filesystem conventions — the stream is yours to save to a path, a buffer, or
-hand to whatever comes next.
+ydpy takes the opposite route: `PlayableVideo.fetch(url)` returns playable
+streams and nothing else happens. No downloads you did not ask for, no
+merging, no filesystem conventions — the stream is yours to save to a path,
+a buffer, or hand to whatever comes next.

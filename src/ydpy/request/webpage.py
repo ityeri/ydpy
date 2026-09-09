@@ -17,13 +17,13 @@ __all__ = [
     'get_watch_page',
     'aget_watch_page',
     'extract_ytcfg',
-    'extract_initial_player_response',
+    'extract_initial_player_response'
 ]
 
 _WATCH_URL = yarl.URL('https://www.youtube.com/watch')
 _PAGE_HEADERS = {
     'User-Agent': BROWSER_USER_AGENT,
-    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Language': 'en-US,en;q=0.9'
 }
 
 
@@ -88,14 +88,14 @@ def get_watch_page(
     *,
     language: str = 'en',
     region: str = 'US',
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> WatchPageData:
     """Fetch the watch page and extract its ytcfg and initial player response."""
     url = _WATCH_URL.with_query({'v': video_id, 'hl': language, 'gl': region})
     html = get_text(url, headers=_PAGE_HEADERS, client=client)
     return WatchPageData(
         ytcfg=extract_ytcfg(html),
-        initial_player_response=extract_initial_player_response(html),
+        initial_player_response=extract_initial_player_response(html)
     )
 
 
@@ -104,12 +104,12 @@ async def aget_watch_page(
     *,
     language: str = 'en',
     region: str = 'US',
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> WatchPageData:
     """Async twin of get_watch_page."""
     url = _WATCH_URL.with_query({'v': video_id, 'hl': language, 'gl': region})
     html = await aget_text(url, headers=_PAGE_HEADERS, async_client=async_client)
     return WatchPageData(
         ytcfg=extract_ytcfg(html),
-        initial_player_response=extract_initial_player_response(html),
+        initial_player_response=extract_initial_player_response(html)
     )

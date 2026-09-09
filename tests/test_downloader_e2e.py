@@ -35,10 +35,10 @@ def _range_response(request: httpx.Request, payload: bytes, *, drop_after: int |
         206,
         headers={
             'Content-Range': f'bytes {start}-{end}/{len(payload)}',
-            'Content-Length': str(len(body)),
+            'Content-Length': str(len(body))
         },
         content=body,
-        request=request,
+        request=request
     )
 
 
@@ -116,7 +116,7 @@ async def test_zero_progress_raises_instead_of_looping(request_log):
             206,
             headers={'Content-Range': f'bytes 0-{len(PAYLOAD) - 1}/{len(PAYLOAD)}'},
             content=b'',
-            request=request,
+            request=request
         )
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler), timeout=10.0)
     buf = io.BytesIO()
@@ -143,7 +143,7 @@ def test_sync_zero_progress_raises(request_log):
             206,
             headers={'Content-Range': f'bytes 0-{len(PAYLOAD) - 1}/{len(PAYLOAD)}'},
             content=b'',
-            request=request,
+            request=request
         )
     client = httpx.Client(transport=httpx.MockTransport(handler), timeout=10.0)
     with pytest.raises(DownloadException, match='No download progress'):

@@ -18,14 +18,14 @@ from ydpy.downloader.utils import (
     Sink,
     STREAM_HEADERS,
     Target,
-    open_target,
+    open_target
 )
 from ydpy.exceptions import DownloadException, ThrottledDownload
 
 __all__ = [
     'best_block_size',
     'download_stream',
-    'adownload_stream',
+    'adownload_stream'
 ]
 
 MAX_BLOCK_SIZE = 4 * 1024 * 1024  # adaptive buffering never exceeds 4 MiB
@@ -62,7 +62,7 @@ def download_stream(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (sync)."""
     options = options or DownloadOptions()
@@ -234,7 +234,7 @@ async def adownload_stream(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> DownloadResult:
     """Download a stream url into target with retry/resume (async)."""
     options = options or DownloadOptions()

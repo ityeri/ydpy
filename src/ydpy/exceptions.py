@@ -7,7 +7,7 @@ __all__ = [
     'DataParsingException',
     'ExtractionException',
     'DownloadException',
-    'ThrottledDownload',
+    'ThrottledDownload'
 ]
 
 

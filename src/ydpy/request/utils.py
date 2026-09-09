@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 import yarl
 
+from ydpy.constants import BROWSER_USER_AGENT
 from ydpy.exceptions import RequestException
 
 __all__ = [
@@ -17,7 +18,7 @@ __all__ = [
     'post_json',
     'apost_json',
     'get_text',
-    'aget_text',
+    'aget_text'
 ]
 
 _logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ def post_json(
     payload: dict[str, Any],
     *,
     headers: dict[str, str] | None = None,
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> dict[str, Any]:
     """POST JSON and return the parsed object response."""
     own_client = client is None
@@ -76,7 +77,7 @@ async def apost_json(
     payload: dict[str, Any],
     *,
     headers: dict[str, str] | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> dict[str, Any]:
     """Async twin of post_json."""
     own_client = async_client is None
@@ -105,7 +106,7 @@ def get_text(
     url: yarl.URL | str,
     *,
     headers: dict[str, str] | None = None,
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> str:
     """GET a URL and return the response body as text."""
     own_client = client is None
@@ -128,7 +129,7 @@ async def aget_text(
     url: yarl.URL | str,
     *,
     headers: dict[str, str] | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> str:
     """Async twin of get_text."""
     own_client = async_client is None

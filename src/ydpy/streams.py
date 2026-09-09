@@ -5,13 +5,19 @@ from __future__ import annotations
 import dataclasses
 import enum
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+import httpx
 import yarl
 
-if TYPE_CHECKING:
-    from ydpy.downloader.utils import Target
-
+from ydpy.downloader.http_downloader import adownload_stream, download_stream
+from ydpy.downloader.segment_downloader import (
+    adownload_dash,
+    adownload_hls,
+    download_dash,
+    download_hls
+)
+from ydpy.downloader.utils import DownloadOptions, DownloadResult, Target
 from ydpy.exceptions import DataParsingException
 
 __all__ = [
@@ -19,8 +25,7 @@ __all__ = [
     'VideoCodec',
     'AudioCodec',
     'StreamingProtocol',
-    'Format',
-    'VideoData',
+    'Format'
 ]
 
 
@@ -176,7 +181,7 @@ class Format:
                 filesize=_int_or_none(raw.get('contentLength')),
                 approx_duration_ms=_int_or_none(raw.get('approxDurationMs')),
                 has_drm=bool(raw.get('drmFamilies')),
-                quality_label=raw.get('qualityLabel') or raw.get('quality'),
+                quality_label=raw.get('qualityLabel') or raw.get('quality')
             )
         except (AttributeError, KeyError) as e:
             raise DataParsingException(f'Malformed format entry: {e}') from e
@@ -189,27 +194,37 @@ class Format:
         """Return a copy whose stream url carries the given po token."""
         return dataclasses.replace(self, url=str(yarl.URL(self.url).update_query({'pot': token})))
 
-    def download(self, target: Target, **kwargs: Any):
+    def download(
+        self,
+        target: Target,
+        *,
+        options: DownloadOptions | None = None,
+        client: httpx.Client | None = None
+    ) -> DownloadResult:
         """Download this stream into a path or a file-like sink (sync)."""
         if self.protocol is StreamingProtocol.HTTPS:
-            from ydpy.downloader import download_stream
-            return download_stream(self.url, target, **kwargs)
+            return download_stream(self.url, target, options=options, client=client)
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.downloader import download_hls
-            return download_hls(self.url, target, **kwargs)
-        from ydpy.downloader import download_dash
-        return download_dash(self.url, target, **kwargs)
+            return download_hls(self.url, target, options=options, client=client)
+        return download_dash(self.url, target)
 
-    async def adownload(self, target: Target, **kwargs: Any):
+    async def adownload(
+        self,
+        target: Target,
+        *,
+        options: DownloadOptions | None = None,
+        async_client: httpx.AsyncClient | None = None
+    ) -> DownloadResult:
         """Download this stream into a path or a file-like sink (async)."""
         if self.protocol is StreamingProtocol.HTTPS:
-            from ydpy.downloader import adownload_stream
-            return await adownload_stream(self.url, target, **kwargs)
+            return await adownload_stream(
+                self.url, target, options=options, async_client=async_client
+            )
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.downloader import adownload_hls
-            return await adownload_hls(self.url, target, **kwargs)
-        from ydpy.downloader import adownload_dash
-        return await adownload_dash(self.url, target, **kwargs)
+            return await adownload_hls(
+                self.url, target, options=options, async_client=async_client
+            )
+        return await adownload_dash(self.url, target)
 
 
 def _extract_codecs(mime_type: str | None) -> str | None:
@@ -218,14 +233,3 @@ def _extract_codecs(mime_type: str | None) -> str | None:
         return None
     codecs_part = mime_type.split('codecs=', 1)[1].strip()
     return codecs_part.strip('"')
-
-
-@dataclass(frozen=True, slots=True)
-class VideoData:
-    """Immutable snapshot of one video's playable streams."""
-
-    video_id: str
-    title: str | None
-    duration_ms: int | None
-    client: str
-    formats: tuple[Format, ...]

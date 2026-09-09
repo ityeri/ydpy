@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from typing import BinaryIO, Callable, TypeAlias
 
-from ydpy.request.utils import BROWSER_USER_AGENT
+from ydpy.constants import BROWSER_USER_AGENT
 
 __all__ = [
     'Sink',
@@ -16,7 +16,7 @@ __all__ = [
     'DownloadProgress',
     'DownloadResult',
     'STREAM_HEADERS',
-    'open_target',
+    'open_target'
 ]
 
 # Commonly-used writable-bytes targets. Structural at runtime: anything with a

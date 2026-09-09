@@ -10,7 +10,6 @@ import asyncio
 import re
 import time
 from dataclasses import dataclass
-from typing import Any
 
 import httpx
 import yarl
@@ -22,10 +21,11 @@ from ydpy.downloader.utils import (
     STREAM_HEADERS,
     Sink,
     Target,
-    open_target,
+    open_target
 )
+from ydpy.constants import BROWSER_USER_AGENT
 from ydpy.exceptions import DataParsingException, DownloadException
-from ydpy.request.utils import BROWSER_USER_AGENT, aget_text, get_text
+from ydpy.request.utils import aget_text, get_text
 
 __all__ = [
     'HlsVariant',
@@ -35,7 +35,7 @@ __all__ = [
     'download_hls',
     'adownload_hls',
     'download_dash',
-    'adownload_dash',
+    'adownload_dash'
 ]
 
 _STREAM_INF_RE = re.compile(r'^#EXT-X-STREAM-INF:(.*)$')
@@ -57,7 +57,7 @@ class HlsVariant:
 class HlsMediaPlaylist:
     """Segment list of one HLS media playlist."""
 
-    segment_urls: tuple[str, ...]
+    segment_urls: list[str]
     endlist: bool = True
 
 
@@ -79,7 +79,7 @@ def _parse_attrs(attr_text: str) -> dict[str, str]:
     return attrs
 
 
-def parse_hls_master(text: str, base_url: str) -> tuple[HlsVariant, ...]:
+def parse_hls_master(text: str, base_url: str) -> list[HlsVariant]:
     """Extract the video renditions from a master playlist."""
     variants: list[HlsVariant] = []
     pending: dict[str, str] | None = None
@@ -105,9 +105,9 @@ def parse_hls_master(text: str, base_url: str) -> tuple[HlsVariant, ...]:
                 bandwidth=_to_int(attrs.get('BANDWIDTH')),
                 width=width,
                 height=height,
-                codecs=attrs.get('CODECS'),
+                codecs=attrs.get('CODECS')
             ))
-    return tuple(variants)
+    return variants
 
 
 def parse_hls_media(text: str, base_url: str) -> HlsMediaPlaylist:
@@ -125,7 +125,7 @@ def parse_hls_media(text: str, base_url: str) -> HlsMediaPlaylist:
         segment_urls.append(_resolve(base_url, line))
     if not segment_urls:
         raise DataParsingException('Media playlist contains no segments')
-    return HlsMediaPlaylist(segment_urls=tuple(segment_urls), endlist='#EXT-X-ENDLIST' in text)
+    return HlsMediaPlaylist(segment_urls=segment_urls, endlist='#EXT-X-ENDLIST' in text)
 
 
 def _to_int(value: str | None) -> int | None:
@@ -138,7 +138,7 @@ def _to_int(value: str | None) -> int | None:
         return None
 
 
-def _pick_variant(variants: tuple[HlsVariant, ...]) -> HlsVariant:
+def _pick_variant(variants: list[HlsVariant]) -> HlsVariant:
     """Highest resolution, then bandwidth. Explicit > implicit preference."""
     return max(variants, key=lambda v: ((v.height or 0), (v.width or 0), v.bandwidth or 0))
 
@@ -148,7 +148,7 @@ def download_hls(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> DownloadResult:
     """Fetch an HLS master playlist and download its best rendition (sync)."""
     options = options or DownloadOptions()
@@ -177,11 +177,11 @@ def download_hls(
 
 
 def _download_segments(
-    segment_urls: tuple[str, ...],
+    segment_urls: list[str],
     target: Target,
     options: DownloadOptions,
     client: httpx.Client,
-    start_time: float,
+    start_time: float
 ) -> DownloadResult:
     """Fetch every segment in order and concatenate it into the target."""
     sink, should_close = open_target(target)
@@ -230,7 +230,7 @@ async def adownload_hls(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> DownloadResult:
     """Async twin of download_hls."""
     options = options or DownloadOptions()
@@ -259,11 +259,11 @@ async def adownload_hls(
 
 
 async def _adownload_segments(
-    segment_urls: tuple[str, ...],
+    segment_urls: list[str],
     target: Target,
     options: DownloadOptions,
     async_client: httpx.AsyncClient,
-    start_time: float,
+    start_time: float
 ) -> DownloadResult:
     """Async twin of _download_segments."""
     sink, should_close = open_target(target)
@@ -306,15 +306,17 @@ async def _afetch_segment(segment_url: str, options: DownloadOptions,
             await asyncio.sleep(min(0.5 * (2 ** attempt), 5.0))
 
 
-def download_dash(mpd_url: str, target: str | Any, **kwargs: Any) -> DownloadResult:
+def download_dash(mpd_url: str, target: Target) -> DownloadResult:
     """DASH download placeholder: no live MPD shape in the client set yet."""
     raise DownloadException(
-        f'DASH manifests are not supported yet (got {mpd_url}); '
-        'no client in the current set serves a dashManifestUrl to validate against')
+        f'DASH manifests are not supported yet (got {mpd_url}); ',
+        'no client in the current set serves a dashManifestUrl to validate against'
+    )
 
 
-async def adownload_dash(mpd_url: str, target: str | Any, **kwargs: Any) -> DownloadResult:
+async def adownload_dash(mpd_url: str, target: Target) -> DownloadResult:
     """Async twin of download_dash."""
     raise DownloadException(
-        f'DASH manifests are not supported yet (got {mpd_url}); '
-        'no client in the current set serves a dashManifestUrl to validate against')
+        f'DASH manifests are not supported yet (got {mpd_url}); ',
+        'no client in the current set serves a dashManifestUrl to validate against'
+    )

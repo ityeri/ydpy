@@ -14,7 +14,7 @@ from ydpy.request.utils import FALLBACK_API_KEY, INNERTUBE_HOST, apost_json, pos
 __all__ = [
     'get_player',
     'aget_player',
-    'build_player_payload',
+    'build_player_payload'
 ]
 
 _PLAYER_URL = yarl.URL(f'{INNERTUBE_HOST}/player')
@@ -24,12 +24,12 @@ def build_player_payload(
     client: Client,
     video_id: str,
     *,
-    visitor_data: str | None = None,
+    visitor_data: str | None = None
 ) -> dict[str, Any]:
     """Build the innertube player POST body for a client definition."""
     client_context: dict[str, Any] = {
         'clientName': client.client_name,
-        'clientVersion': client.client_version,
+        'clientVersion': client.client_version
     }
     if client.user_agent:
         client_context['userAgent'] = client.user_agent
@@ -47,7 +47,7 @@ def build_player_payload(
         'context': {'client': client_context},
         'videoId': video_id,
         'contentCheckOk': True,
-        'racyCheckOk': True,
+        'racyCheckOk': True
     }
 
 
@@ -70,7 +70,7 @@ def get_player(
     *,
     api_key: str | None = None,
     visitor_data: str | None = None,
-    http_client: httpx.Client | None = None,
+    http_client: httpx.Client | None = None
 ) -> dict[str, Any]:
     """Request the innertube player endpoint for a client (sync)."""
     url = _PLAYER_URL.with_query({'key': api_key or FALLBACK_API_KEY, 'prettyPrint': 'false'})
@@ -86,7 +86,7 @@ async def aget_player(
     *,
     api_key: str | None = None,
     visitor_data: str | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> dict[str, Any]:
     """Request the innertube player endpoint for a client (async)."""
     url = _PLAYER_URL.with_query({'key': api_key or FALLBACK_API_KEY, 'prettyPrint': 'false'})
