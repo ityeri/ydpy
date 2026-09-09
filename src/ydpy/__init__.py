@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover - source checkout without install
 
 from ydpy import client
 from ydpy import exceptions
+from ydpy import request
 from ydpy.downloader import DownloadOptions, DownloadResult
 from ydpy.playable_video import PlayableVideo
 from ydpy.streams import \
@@ -33,5 +34,6 @@ __all__ = [
 
     'downloader',
     'client',
+    'request',
     'exceptions'
 ]
