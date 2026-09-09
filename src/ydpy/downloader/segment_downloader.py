@@ -10,7 +10,6 @@ import asyncio
 import re
 import time
 from dataclasses import dataclass
-from typing import Any
 
 import httpx
 import yarl
@@ -307,15 +306,17 @@ async def _afetch_segment(segment_url: str, options: DownloadOptions,
             await asyncio.sleep(min(0.5 * (2 ** attempt), 5.0))
 
 
-def download_dash(mpd_url: str, target: str | Any, **kwargs: Any) -> DownloadResult:
+def download_dash(mpd_url: str, target: Target) -> DownloadResult:
     """DASH download placeholder: no live MPD shape in the client set yet."""
     raise DownloadException(
-        f'DASH manifests are not supported yet (got {mpd_url}); '
-        'no client in the current set serves a dashManifestUrl to validate against')
+        f'DASH manifests are not supported yet (got {mpd_url}); ',
+        'no client in the current set serves a dashManifestUrl to validate against',
+    )
 
 
-async def adownload_dash(mpd_url: str, target: str | Any, **kwargs: Any) -> DownloadResult:
+async def adownload_dash(mpd_url: str, target: Target) -> DownloadResult:
     """Async twin of download_dash."""
     raise DownloadException(
-        f'DASH manifests are not supported yet (got {mpd_url}); '
-        'no client in the current set serves a dashManifestUrl to validate against')
+        f'DASH manifests are not supported yet (got {mpd_url}); ',
+        'no client in the current set serves a dashManifestUrl to validate against',
+    )
