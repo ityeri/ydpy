@@ -15,7 +15,7 @@ from ydpy.downloader.segment_downloader import (
     adownload_dash,
     adownload_hls,
     download_dash,
-    download_hls,
+    download_hls
 )
 from ydpy.downloader.utils import DownloadOptions, DownloadResult, Target
 from ydpy.exceptions import DataParsingException
@@ -25,7 +25,7 @@ __all__ = [
     'VideoCodec',
     'AudioCodec',
     'StreamingProtocol',
-    'Format',
+    'Format'
 ]
 
 
@@ -181,7 +181,7 @@ class Format:
                 filesize=_int_or_none(raw.get('contentLength')),
                 approx_duration_ms=_int_or_none(raw.get('approxDurationMs')),
                 has_drm=bool(raw.get('drmFamilies')),
-                quality_label=raw.get('qualityLabel') or raw.get('quality'),
+                quality_label=raw.get('qualityLabel') or raw.get('quality')
             )
         except (AttributeError, KeyError) as e:
             raise DataParsingException(f'Malformed format entry: {e}') from e
@@ -199,7 +199,7 @@ class Format:
         target: Target,
         *,
         options: DownloadOptions | None = None,
-        client: httpx.Client | None = None,
+        client: httpx.Client | None = None
     ) -> DownloadResult:
         """Download this stream into a path or a file-like sink (sync)."""
         if self.protocol is StreamingProtocol.HTTPS:
@@ -213,16 +213,16 @@ class Format:
         target: Target,
         *,
         options: DownloadOptions | None = None,
-        async_client: httpx.AsyncClient | None = None,
+        async_client: httpx.AsyncClient | None = None
     ) -> DownloadResult:
         """Download this stream into a path or a file-like sink (async)."""
         if self.protocol is StreamingProtocol.HTTPS:
             return await adownload_stream(
-                self.url, target, options=options, async_client=async_client,
+                self.url, target, options=options, async_client=async_client
             )
         if self.protocol is StreamingProtocol.HLS:
             return await adownload_hls(
-                self.url, target, options=options, async_client=async_client,
+                self.url, target, options=options, async_client=async_client
             )
         return await adownload_dash(self.url, target)
 

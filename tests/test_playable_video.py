@@ -15,7 +15,7 @@ VALID = [
     ('https://www.youtube.com/embed/YE7VzlLtp-4', 'YE7VzlLtp-4'),
     ('https://www.youtube.com/live/YE7VzlLtp-4', 'YE7VzlLtp-4'),
     ('https://music.youtube.com/watch?v=YE7VzlLtp-4', 'YE7VzlLtp-4'),
-    ('http://www.youtube.com/watch?v=YE7VzlLtp-4&t=1s', 'YE7VzlLtp-4'),
+    ('http://www.youtube.com/watch?v=YE7VzlLtp-4&t=1s', 'YE7VzlLtp-4')
 ]
 
 INVALID = [
@@ -24,7 +24,7 @@ INVALID = [
     'https://www.youtube.com/playlist?list=PL1234567890',
     'https://vimeo.com/123456',
     'not a url at all',
-    '',
+    ''
 ]
 
 

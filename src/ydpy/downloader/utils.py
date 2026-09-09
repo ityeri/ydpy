@@ -16,7 +16,7 @@ __all__ = [
     'DownloadProgress',
     'DownloadResult',
     'STREAM_HEADERS',
-    'open_target',
+    'open_target'
 ]
 
 # Commonly-used writable-bytes targets. Structural at runtime: anything with a

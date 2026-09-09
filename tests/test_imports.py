@@ -25,7 +25,7 @@ IMPORT_CODES = [
     'import ydpy.playable_video',
     'import ydpy.streams',
     'from ydpy.playable_video import PlayableVideo',
-    'from ydpy.client import CLIENTS; import ydpy.request.player',
+    'from ydpy.client import CLIENTS; import ydpy.request.player'
 ]
 
 

@@ -21,7 +21,7 @@ from ydpy.downloader.utils import (
     STREAM_HEADERS,
     Sink,
     Target,
-    open_target,
+    open_target
 )
 from ydpy.constants import BROWSER_USER_AGENT
 from ydpy.exceptions import DataParsingException, DownloadException
@@ -35,7 +35,7 @@ __all__ = [
     'download_hls',
     'adownload_hls',
     'download_dash',
-    'adownload_dash',
+    'adownload_dash'
 ]
 
 _STREAM_INF_RE = re.compile(r'^#EXT-X-STREAM-INF:(.*)$')
@@ -105,7 +105,7 @@ def parse_hls_master(text: str, base_url: str) -> list[HlsVariant]:
                 bandwidth=_to_int(attrs.get('BANDWIDTH')),
                 width=width,
                 height=height,
-                codecs=attrs.get('CODECS'),
+                codecs=attrs.get('CODECS')
             ))
     return variants
 
@@ -148,7 +148,7 @@ def download_hls(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    client: httpx.Client | None = None,
+    client: httpx.Client | None = None
 ) -> DownloadResult:
     """Fetch an HLS master playlist and download its best rendition (sync)."""
     options = options or DownloadOptions()
@@ -181,7 +181,7 @@ def _download_segments(
     target: Target,
     options: DownloadOptions,
     client: httpx.Client,
-    start_time: float,
+    start_time: float
 ) -> DownloadResult:
     """Fetch every segment in order and concatenate it into the target."""
     sink, should_close = open_target(target)
@@ -230,7 +230,7 @@ async def adownload_hls(
     target: Target,
     *,
     options: DownloadOptions | None = None,
-    async_client: httpx.AsyncClient | None = None,
+    async_client: httpx.AsyncClient | None = None
 ) -> DownloadResult:
     """Async twin of download_hls."""
     options = options or DownloadOptions()
@@ -263,7 +263,7 @@ async def _adownload_segments(
     target: Target,
     options: DownloadOptions,
     async_client: httpx.AsyncClient,
-    start_time: float,
+    start_time: float
 ) -> DownloadResult:
     """Async twin of _download_segments."""
     sink, should_close = open_target(target)
@@ -310,7 +310,7 @@ def download_dash(mpd_url: str, target: Target) -> DownloadResult:
     """DASH download placeholder: no live MPD shape in the client set yet."""
     raise DownloadException(
         f'DASH manifests are not supported yet (got {mpd_url}); ',
-        'no client in the current set serves a dashManifestUrl to validate against',
+        'no client in the current set serves a dashManifestUrl to validate against'
     )
 
 
@@ -318,5 +318,5 @@ async def adownload_dash(mpd_url: str, target: Target) -> DownloadResult:
     """Async twin of download_dash."""
     raise DownloadException(
         f'DASH manifests are not supported yet (got {mpd_url}); ',
-        'no client in the current set serves a dashManifestUrl to validate against',
+        'no client in the current set serves a dashManifestUrl to validate against'
     )

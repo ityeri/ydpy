@@ -5,7 +5,7 @@ from ydpy.downloader.segment_downloader import (
     adownload_dash,
     adownload_hls,
     download_dash,
-    download_hls,
+    download_hls
 )
 from ydpy.downloader.utils import DownloadOptions, DownloadProgress, DownloadResult, Sink
 
@@ -19,5 +19,5 @@ __all__ = [
     'DownloadOptions',
     'DownloadProgress',
     'DownloadResult',
-    'Sink',
+    'Sink'
 ]

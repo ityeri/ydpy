@@ -36,7 +36,7 @@ def _get_manifest_formats(streaming_data: dict[str, Any], *, client: str) -> lis
                 client=client,
                 url=manifest_url,
                 protocol=StreamingProtocol(protocol_name),
-                quality_label=protocol_name,
+                quality_label=protocol_name
             ))
     return entries
 
@@ -45,7 +45,7 @@ def _get_watch_credentials(
         video_id: str,
         api_key: str | None,
         visitor_data: str | None,
-        http_client: httpx.Client | None,
+        http_client: httpx.Client | None
 ) -> tuple[str | None, str | None]:
     """Backfill api key/visitor data from the watch page ytcfg when missing."""
     if api_key is not None and visitor_data is not None:
@@ -59,7 +59,7 @@ async def _aget_watch_credentials(
         video_id: str,
         api_key: str | None,
         visitor_data: str | None,
-        async_client: httpx.AsyncClient | None,
+        async_client: httpx.AsyncClient | None
 ) -> tuple[str | None, str | None]:
     """Async twin of _watch_credentials."""
     if api_key is not None and visitor_data is not None:
@@ -128,7 +128,7 @@ class PlayableVideo:
             client_names: Sequence[str] | None = None,
             api_key: str | None = None,
             visitor_data: str | None = None,
-            http_client: httpx.Client | None = None,
+            http_client: httpx.Client | None = None
     ) -> PlayableVideo:
         """Fetch playable streams, walking the client fallback chain on failure."""
         video_id = _parse_identifier(video_id_or_url)
@@ -152,7 +152,7 @@ class PlayableVideo:
             client_names: Sequence[str] | None = None,
             api_key: str | None = None,
             visitor_data: str | None = None,
-            async_client: httpx.AsyncClient | None = None,
+            async_client: httpx.AsyncClient | None = None
     ) -> PlayableVideo:
         """Async twin of extract_video_data."""
         video_id = _parse_identifier(video_id_or_url)
@@ -175,7 +175,7 @@ class PlayableVideo:
             player_response: dict[str, Any],
             *,
             client: str,
-            duration_ms: int | None,
+            duration_ms: int | None
     ) -> list[Format]:
         """Parse url-bearing formats, appending HLS/DASH manifest entries when present."""
         streaming_data = player_response.get('streamingData') or {}
@@ -198,7 +198,7 @@ class PlayableVideo:
             video_id: str,
             api_key: str | None,
             visitor_data: str | None,
-            http_client: httpx.Client | None,
+            http_client: httpx.Client | None
     ) -> PlayableVideo:
         """Fetch and parse playable streams from a single client."""
         client = CLIENTS[client_name]
@@ -218,7 +218,7 @@ class PlayableVideo:
             title=details.get('title'),
             duration_ms=duration_ms,
             client=client_name,
-            formats=formats,
+            formats=formats
         )
 
     @staticmethod
@@ -227,7 +227,7 @@ class PlayableVideo:
             video_id: str,
             api_key: str | None,
             visitor_data: str | None,
-            async_client: httpx.AsyncClient | None,
+            async_client: httpx.AsyncClient | None
     ) -> PlayableVideo:
         """Async twin of _extract_from_client."""
         client = CLIENTS[client_name]
@@ -247,5 +247,5 @@ class PlayableVideo:
             title=details.get('title'),
             duration_ms=duration_ms,
             client=client_name,
-            formats=formats,
+            formats=formats
         )
