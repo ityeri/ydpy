@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import re
 from dataclasses import dataclass
@@ -6,7 +8,7 @@ from typing import Any, Sequence
 import httpx
 from yarl import URL
 
-from ydpy import Format, StreamingProtocol
+from ydpy.streams import Format, StreamingProtocol
 from ydpy.client import CLIENTS, DEFAULT_CLIENT_NAMES
 from ydpy.exceptions import ExtractionException, InvalidVideoIdentifierException
 from ydpy.request.player import get_player, aget_player
@@ -68,7 +70,7 @@ async def _aget_watch_credentials(
 
 
 _VIDEO_ID_PATTERN = re.compile(r'^[A-Za-z0-9_-]{11}$')
-_KNOWN_PATH_PREFIXES = ('shorts', 'embed', 'live', 'v', 'watch', 'playlist')
+_KNOWN_PATH_PREFIXES = ['shorts', 'embed', 'live', 'v', 'watch', 'playlist']
 
 
 def _parse_identifier(value: str) -> str | None:

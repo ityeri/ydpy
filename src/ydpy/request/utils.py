@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 import yarl
 
+from ydpy.constants import BROWSER_USER_AGENT
 from ydpy.exceptions import RequestException
 
 __all__ = [

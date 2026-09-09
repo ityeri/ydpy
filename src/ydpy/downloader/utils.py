@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from typing import BinaryIO, Callable, TypeAlias
 
-from ydpy.request.utils import BROWSER_USER_AGENT
+from ydpy.constants import BROWSER_USER_AGENT
 
 __all__ = [
     'Sink',

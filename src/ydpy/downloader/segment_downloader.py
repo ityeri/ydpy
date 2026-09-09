@@ -24,8 +24,9 @@ from ydpy.downloader.utils import (
     Target,
     open_target,
 )
+from ydpy.constants import BROWSER_USER_AGENT
 from ydpy.exceptions import DataParsingException, DownloadException
-from ydpy.request.utils import BROWSER_USER_AGENT, aget_text, get_text
+from ydpy.request.utils import aget_text, get_text
 
 __all__ = [
     'HlsVariant',
@@ -57,7 +58,7 @@ class HlsVariant:
 class HlsMediaPlaylist:
     """Segment list of one HLS media playlist."""
 
-    segment_urls: tuple[str, ...]
+    segment_urls: list[str]
     endlist: bool = True
 
 
@@ -79,7 +80,7 @@ def _parse_attrs(attr_text: str) -> dict[str, str]:
     return attrs
 
 
-def parse_hls_master(text: str, base_url: str) -> tuple[HlsVariant, ...]:
+def parse_hls_master(text: str, base_url: str) -> list[HlsVariant]:
     """Extract the video renditions from a master playlist."""
     variants: list[HlsVariant] = []
     pending: dict[str, str] | None = None
@@ -107,7 +108,7 @@ def parse_hls_master(text: str, base_url: str) -> tuple[HlsVariant, ...]:
                 height=height,
                 codecs=attrs.get('CODECS'),
             ))
-    return tuple(variants)
+    return variants
 
 
 def parse_hls_media(text: str, base_url: str) -> HlsMediaPlaylist:
@@ -125,7 +126,7 @@ def parse_hls_media(text: str, base_url: str) -> HlsMediaPlaylist:
         segment_urls.append(_resolve(base_url, line))
     if not segment_urls:
         raise DataParsingException('Media playlist contains no segments')
-    return HlsMediaPlaylist(segment_urls=tuple(segment_urls), endlist='#EXT-X-ENDLIST' in text)
+    return HlsMediaPlaylist(segment_urls=segment_urls, endlist='#EXT-X-ENDLIST' in text)
 
 
 def _to_int(value: str | None) -> int | None:
@@ -138,7 +139,7 @@ def _to_int(value: str | None) -> int | None:
         return None
 
 
-def _pick_variant(variants: tuple[HlsVariant, ...]) -> HlsVariant:
+def _pick_variant(variants: list[HlsVariant]) -> HlsVariant:
     """Highest resolution, then bandwidth. Explicit > implicit preference."""
     return max(variants, key=lambda v: ((v.height or 0), (v.width or 0), v.bandwidth or 0))
 
@@ -177,7 +178,7 @@ def download_hls(
 
 
 def _download_segments(
-    segment_urls: tuple[str, ...],
+    segment_urls: list[str],
     target: Target,
     options: DownloadOptions,
     client: httpx.Client,
@@ -259,7 +260,7 @@ async def adownload_hls(
 
 
 async def _adownload_segments(
-    segment_urls: tuple[str, ...],
+    segment_urls: list[str],
     target: Target,
     options: DownloadOptions,
     async_client: httpx.AsyncClient,

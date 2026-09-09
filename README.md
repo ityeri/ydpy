@@ -46,9 +46,8 @@ dependencies = [
 ```python
 import ydpy
 
-video = ydpy.Video("https://www.youtube.com/watch?v=YE7VzlLtp-4")
-
-data = video.fetch()          # or: await video.afetch()
+data = ydpy.PlayableVideo.fetch("https://www.youtube.com/watch?v=YE7VzlLtp-4")
+# or: data = await ydpy.PlayableVideo.afetch("https://www.youtube.com/watch?v=YE7VzlLtp-4")
 for fmt in data.formats:
     print(fmt.itag, fmt.mime_type, fmt.width, fmt.height, fmt.bitrate)
 
@@ -71,7 +70,7 @@ Async download:
 import asyncio
 
 async def main():
-    data = await ydpy.Video("...").afetch()
+    data = await ydpy.PlayableVideo.afetch("...")
     fmt = next(f for f in data.formats if f.itag == 137)
     result = await fmt.adownload("video.mp4")
     print(f"{result.bytes_written} bytes")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ydpy.request.utils import BROWSER_USER_AGENT
+from ydpy.constants import BROWSER_USER_AGENT
 
 __all__ = [
     'Client',
@@ -33,7 +33,7 @@ class Client:
 
 # Client versions are volatile on YouTube's side; bump them when a client
 # starts misbehaving. This is the "web 2.20260708.00.00" generation.
-_CLIENT_DEFS: tuple[Client, ...] = (
+_CLIENT_DEFS: list[Client] = [
     Client(
         name='web',
         client_name='WEB',
@@ -93,15 +93,15 @@ _CLIENT_DEFS: tuple[Client, ...] = (
         os_version='12L',
         require_js_player=False,
     ),
-)
+]
 
 CLIENTS: dict[str, Client] = {client.name: client for client in _CLIENT_DEFS}
 
 # Ordered fallback chain: first client whose playable formats come back wins.
-DEFAULT_CLIENT_NAMES: tuple[str, ...] = ('visionos', 'tv_downgraded', 'mweb', 'android_vr')
+DEFAULT_CLIENT_NAMES: list[str] = ['visionos', 'tv_downgraded', 'mweb', 'android_vr']
 
 
-def get_default_clients(*, js_available: bool) -> tuple[str, ...]:
+def get_default_clients(*, js_available: bool) -> list[str]:
     """Primary + fallback clients (web needs POT, so it is not in the list)."""
     return DEFAULT_CLIENT_NAMES
 

@@ -5,13 +5,18 @@ from __future__ import annotations
 import dataclasses
 import enum
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import yarl
 
-if TYPE_CHECKING:
-    from ydpy.downloader.utils import Target
-
+from ydpy.downloader.http_downloader import adownload_stream, download_stream
+from ydpy.downloader.segment_downloader import (
+    adownload_dash,
+    adownload_hls,
+    download_dash,
+    download_hls,
+)
+from ydpy.downloader.utils import Target
 from ydpy.exceptions import DataParsingException
 
 __all__ = [
@@ -191,23 +196,17 @@ class Format:
     def download(self, target: Target, **kwargs: Any):
         """Download this stream into a path or a file-like sink (sync)."""
         if self.protocol is StreamingProtocol.HTTPS:
-            from ydpy.downloader import download_stream
             return download_stream(self.url, target, **kwargs)
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.downloader import download_hls
             return download_hls(self.url, target, **kwargs)
-        from ydpy.downloader import download_dash
         return download_dash(self.url, target, **kwargs)
 
     async def adownload(self, target: Target, **kwargs: Any):
         """Download this stream into a path or a file-like sink (async)."""
         if self.protocol is StreamingProtocol.HTTPS:
-            from ydpy.downloader import adownload_stream
             return await adownload_stream(self.url, target, **kwargs)
         if self.protocol is StreamingProtocol.HLS:
-            from ydpy.downloader import adownload_hls
             return await adownload_hls(self.url, target, **kwargs)
-        from ydpy.downloader import adownload_dash
         return await adownload_dash(self.url, target, **kwargs)
 
 
